@@ -9,9 +9,6 @@ const envSchema = z.object({
     .string()
     .transform((val) => parseInt(val, 10))
     .default("3000"),
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
 
   // API Security
   API_SECRET_KEY: z.string().min(1),

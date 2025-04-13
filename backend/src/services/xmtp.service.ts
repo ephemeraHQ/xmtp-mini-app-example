@@ -1,5 +1,6 @@
 import fs from "fs";
-import { Client, type Group } from "@xmtp/node-sdk";
+import { type Group } from "@xmtp/node-sdk";
+import { xmtpClient } from "../index";
 import { env } from "../lib/env";
 import {
   createSigner,
@@ -21,61 +22,55 @@ const encryptionKey = env.XMTP_ENCRYPTION_KEY
 export const addUserToDefaultGroupChat = async (
   newUserInboxId: string,
 ): Promise<boolean> => {
-  // create ephemeral node signer
-  const signer = createSigner(env.XMTP_PRIVATE_KEY);
-  const user = createUser(env.XMTP_PRIVATE_KEY);
   console.log("Adding user to default group chat", newUserInboxId);
-  // create XMTP Node client
-  console.log("Creating XMTP Node client with encription key", encryptionKey);
-  // Railway deployment support
-  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? ".data/xmtp";
-  const dbPath = `${volumePath}/${user.account.address.toLowerCase()}-${env.XMTP_ENV}`;
 
-  // Create database directory if it doesn't exist
-  if (!fs.existsSync(dbPath)) {
-    fs.mkdirSync(dbPath, { recursive: true });
-  }
-  const client = await Client.create(
-    signer,
-    getEncryptionKeyFromHex(encryptionKey),
-    {
-      env: env.XMTP_ENV,
-    },
-  );
-  console.log("Client created", client.inboxId);
-  // Sync the conversations from the network to update the local db
-  await client.conversations.sync();
+  try {
+    // Check if XMTP client is initialized
+    if (!xmtpClient) {
+      throw new Error("XMTP client not initialized");
+    }
 
-  // Get the group chat by id
-  const conversation = await client.conversations.getConversationById(
-    env.XMTP_DEFAULT_CONVERSATION_ID,
-  );
-  if (!conversation)
-    throw new Error(
-      `Conversation not found with id: ${env.XMTP_DEFAULT_CONVERSATION_ID} on env: ${env.XMTP_ENV}`,
+    // Get the group chat by id
+    const conversation = await xmtpClient.conversations.getConversationById(
+      env.XMTP_DEFAULT_CONVERSATION_ID,
     );
 
-  // Get the metadata
-  const metadata = await conversation.metadata();
-  console.log("Conversation found", metadata);
-  if (metadata.conversationType !== "group")
-    throw new Error("Conversation is not a group");
+    if (!conversation)
+      throw new Error(
+        `Conversation not found with id: ${env.XMTP_DEFAULT_CONVERSATION_ID} on env: ${env.XMTP_ENV}`,
+      );
 
-  // load members from the group
-  const group = conversation as Group;
-  const groupMembers = await group.members();
-  console.log(
-    "Group members",
-    groupMembers.map((member) => member.inboxId),
-  );
-  const isMember = groupMembers.some(
-    (member) => member.inboxId === newUserInboxId,
-  );
-  if (isMember) {
-    console.warn("User already in group, skipping...");
-  } else {
-    // Add the user to the group chat
-    await group.addMembers([newUserInboxId]);
+    // Get the metadata
+    const metadata = await conversation.metadata();
+    console.log("Conversation found", metadata);
+
+    if (metadata.conversationType !== "group")
+      throw new Error("Conversation is not a group");
+
+    // load members from the group
+    const group = conversation as Group;
+    const groupMembers = await group.members();
+
+    console.log(
+      "Group members",
+      groupMembers.map((member) => member.inboxId),
+    );
+
+    const isMember = groupMembers.some(
+      (member) => member.inboxId === newUserInboxId,
+    );
+
+    if (isMember) {
+      console.warn("User already in group, skipping...");
+    } else {
+      // Add the user to the group chat
+      await group.addMembers([newUserInboxId]);
+      console.log("User added to group successfully");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error adding user to default group chat:", error);
+    return false;
   }
-  return true;
 };

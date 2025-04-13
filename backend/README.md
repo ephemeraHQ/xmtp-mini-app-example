@@ -19,7 +19,6 @@ variables:
 
 ```bash
 PORT=5001 # Server port
-NODE_ENV=development # Environment mode (development/production)
 API_SECRET_KEY= # Secret key for API authentication, generate with openssl rand -base64 32
 XMTP_PRIVATE_KEY= # XMTP private key
 XMTP_ENCRYPTION_KEY= # XMTP encryption key
@@ -56,11 +55,11 @@ All protected endpoints require the `API_SECRET_KEY` to be provided in the
 request headers as `x-api-secret`.
 
 - `POST /api/xmtp/add-inbox`: Add a user to the default group chat
+- `GET /api/xmtp/get-group-id`: Get the default group chat ID
 
 ## Environment variables
 
 - `PORT`: Server port (default: 5001)
-- `NODE_ENV`: Environment mode (development/production)
 - `API_SECRET_KEY`: Secret key for API authentication
 - `XMTP_PRIVATE_KEY`: XMTP private key
 - `XMTP_ENCRYPTION_KEY`: XMTP encryption key
