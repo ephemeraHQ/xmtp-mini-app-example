@@ -183,7 +183,9 @@ export default function CurrentConversationPage({
       </div>
 
       {/* Message List */}
-      <ScrollArea className="max-h-[72vh]" viewportRef={viewportRef}>
+      <ScrollArea
+        className="flex-1 h-full flex flex-col justify-start"
+        viewportRef={viewportRef}>
         <MessageList
           messages={currentConversationMessages}
           groupMembers={groupMembers}

@@ -33,7 +33,7 @@ export default function MessageList({
   refreshMessages,
 }: MessageListProps) {
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col gap-2 w-full justify-start">
       {messages.map((message) => {
         const isSender = clientInboxId === message.senderInboxId;
         const member = groupMembers.find(

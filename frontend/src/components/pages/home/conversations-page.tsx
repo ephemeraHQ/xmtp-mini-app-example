@@ -20,12 +20,12 @@ export default function ConversationsPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGroupJoined, setIsGroupJoined] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [groupName, setGroupName] = useState("XMTP & Frames v2");
+  const [groupName, setGroupName] = useState("");
   const [groupConversation, setGroupConversation] =
     useState<Conversation | null>(null);
 
   useEffect(() => {
-    if (conversations.length > 0) {
+    if (conversations.length >= 0) {
       handleFetchGroupId();
     }
   }, [conversations]);
@@ -77,9 +77,12 @@ export default function ConversationsPage({
 
       const foundGroup = conversations.find((conv) => conv.id === groupId);
       if (foundGroup) {
-        setIsGroupJoined(true);
-        setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
-        setGroupConversation(foundGroup);
+        await foundGroup?.sync();
+        if ((foundGroup as Group).isActive) {
+          setIsGroupJoined(true);
+          setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
+          setGroupConversation(foundGroup);
+        }
       }
     } catch (error) {
       console.error("Error fetching group ID:", error);
