@@ -37,12 +37,14 @@ export default function ConversationsPage({
       setJoining(true);
       // call nextjs backend to set header without exposing the API_SECRET_KEY
       const data = await ky
-        .post<{ success: boolean; message: string }>(`/api/proxy/leave-group`, {
-          json: {
-            inboxId: client.inboxId,
-            conversationId: groupConversation.id,
+        .post<{ success: boolean; message: string }>(
+          `/api/proxy/remove-inbox`,
+          {
+            json: {
+              inboxId: client.inboxId,
+            },
           },
-        })
+        )
         .json();
       setJoining(false);
 
@@ -52,12 +54,12 @@ export default function ConversationsPage({
         setIsGroupJoined(false);
         setGroupConversation(null);
       } else {
-        console.warn("Failed to leave the group", data);
+        console.warn("Failed to remove me from the default conversation", data);
         setErrorMessage(data.message);
       }
     } catch (error) {
-      console.error("Error leaving the group", error);
-      setErrorMessage("Failed to leave the group");
+      console.error("Error removing me from the default conversation", error);
+      setErrorMessage("Failed to remove me from the default conversation");
       setJoining(false);
     }
   };
