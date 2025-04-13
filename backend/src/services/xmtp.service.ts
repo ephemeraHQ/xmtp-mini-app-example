@@ -1,18 +1,6 @@
-import fs from "fs";
 import { type Group } from "@xmtp/node-sdk";
 import { xmtpClient } from "../index";
 import { env } from "../lib/env";
-import {
-  createSigner,
-  createUser,
-  generateEncryptionKeyHex,
-  getEncryptionKeyFromHex,
-} from "../lib/xmtp-utils";
-
-// create random encryption key
-const encryptionKey = env.XMTP_ENCRYPTION_KEY
-  ? env.XMTP_ENCRYPTION_KEY
-  : generateEncryptionKeyHex();
 
 /**
  * Add a user to the default group chat
@@ -25,11 +13,6 @@ export const addUserToDefaultGroupChat = async (
   console.log("Adding user to default group chat", newUserInboxId);
 
   try {
-    // Check if XMTP client is initialized
-    if (!xmtpClient) {
-      throw new Error("XMTP client not initialized");
-    }
-
     // Get the group chat by id
     const conversation = await xmtpClient.conversations.getConversationById(
       env.XMTP_DEFAULT_CONVERSATION_ID,
@@ -71,6 +54,33 @@ export const addUserToDefaultGroupChat = async (
     return true;
   } catch (error) {
     console.error("Error adding user to default group chat:", error);
+    return false;
+  }
+};
+
+export const removeUserFromDefaultGroupChat = async (
+  userInboxId: string,
+): Promise<boolean> => {
+  try {
+    console.log("Removing user from default group chat", userInboxId);
+
+    // Get the group chat by id
+    const conversation = await xmtpClient.conversations.getConversationById(
+      env.XMTP_DEFAULT_CONVERSATION_ID,
+    );
+
+    if (!conversation)
+      throw new Error(
+        `Conversation not found with id: ${env.XMTP_DEFAULT_CONVERSATION_ID} on env: ${env.XMTP_ENV}`,
+      );
+
+    const group = conversation as Group;
+    await group.removeMembers([userInboxId]);
+    console.log("User removed from group successfully");
+
+    return true;
+  } catch (error) {
+    console.error("Error removing user from default group chat:", error);
     return false;
   }
 };
