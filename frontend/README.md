@@ -23,7 +23,6 @@ NEXT_PUBLIC_URL= # Your local/production URL
 NEXT_PUBLIC_APP_ENV=development # Enable Eruda for debugging
 NEXT_PUBLIC_NEYNAR_API_KEY= # Neynar API key from https://neynar.com
 JWT_SECRET= # Generate with openssl rand -base64 32
-NEXT_PUBLIC_XMTP_DEFAULT_CONVERSATION_ID= # XMTP group conversation ID
 XMTP_PRIVATE_KEY= # Private key of your XMTP account
 XMTP_ENV=dev # XMTP environment (dev/production)
 XMTP_ENCRYPTION_KEY= # Optional, generated automatically on first run

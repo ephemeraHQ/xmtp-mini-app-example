@@ -50,7 +50,7 @@ export async function getFarcasterManifest() {
     signature:
       "MHhkMmZkNTgxOWRiZWNhZjk4ZDUxZTNkOTBiNjI0NTMxNmRhYjA3MzNkM2M5MmZjNjRkMGYwZDc0ZGVlNmQ3ZmU3NmFkNTM0ZDEzOGM0NTRiNDJlMWE2MzFiNzhhOGQzNWRiZmRjODEzZmQ5NjYzMWFkZDQ3NDVkZjY1NzJiMDYzNDFi",
   };
-  if (env.NEXT_PUBLIC_APP_ENV === "development") {
+  if (env.NEXT_PUBLIC_APP_ENV !== "production") {
     accountAssociation = {
       header:
         "eyJmaWQiOjE4OTYzNiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweGMwODNEYjQxNThkNzdDMWNDYjIxMkI5MUQ3MWMwZmEzODcyMTc4YzEifQ",
