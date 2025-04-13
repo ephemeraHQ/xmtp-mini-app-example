@@ -45,10 +45,10 @@ export async function getFonts(): Promise<
 export async function getFarcasterManifest() {
   let accountAssociation = {
     header:
-      "eyJmaWQiOjE4OTYzNiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDQ1QzViNUI3QzREMUQxMWQzNjVjZGZFRWFkMDMxNGFFMzZmRDYyRDUifQ",
-    payload: "eyJkb21haW4iOiJ4bXRwLWZyYW1lc3YyLnZlcmNlbC5hcHAifQ",
+      "eyJmaWQiOjEwOTUyLCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4OTI5Mjk3RGVGZDJBN2IzMzk0QTEyNkMwMDUxMkY2NjUxMzQ1YTE4ZiJ9",
+    payload: "eyJkb21haW4iOiJ4bXRwLW1pbmktYXBwLnZlcmNlbC5hcHAifQ",
     signature:
-      "MHhkYTdiOTQwNDU0YjExNjkxYTdiMGU4MDQ5OTdhOGFjMzExMjk5NDlhYTQwOWNhMDQxMjkzYjIxMWYyZTAwMzNkNzAyNGZkYzQwY2JiNGVkZjJkODhhYjI3NWI5OGMwMzRhN2Q5M2RjZDVjYmE2ZTFlMTNkNmE3MzdjNGQ5MTQzNTFj",
+      "MHhkMmZkNTgxOWRiZWNhZjk4ZDUxZTNkOTBiNjI0NTMxNmRhYjA3MzNkM2M5MmZjNjRkMGYwZDc0ZGVlNmQ3ZmU3NmFkNTM0ZDEzOGM0NTRiNDJlMWE2MzFiNzhhOGQzNWRiZmRjODEzZmQ5NjYzMWFkZDQ3NDVkZjY1NzJiMDYzNDFi",
   };
   if (env.NEXT_PUBLIC_APP_ENV === "development") {
     accountAssociation = {
