@@ -48,7 +48,7 @@ yarn dev
 yarn frames
 ```
 
-## Testing the frame
+## Debugging
 
 There are multiple ways to test your MiniApp:
 
@@ -58,7 +58,7 @@ There are multiple ways to test your MiniApp:
 yarn frames
 ```
 
-Then enter your NEXT_PUBLIC_URL (e.g., http://localhost:3000)
+Then enter your `NEXT_PUBLIC_URL` (e.g., http://localhost:3000)
 
 ### Using Warpcast debug page
 
@@ -82,8 +82,6 @@ Follow
 ## Deployment
 
 This is a standard Next.js app that can be deployed to any hosting provider.
-
-### Using Vercel
 
 1. Update production environment variables
 2. Update the `farcaster.json` manifest file with:
