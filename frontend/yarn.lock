@@ -708,25 +708,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@farcaster/frame-core@npm:0.0.29, @farcaster/frame-core@npm:^0.0.29":
-  version: 0.0.29
-  resolution: "@farcaster/frame-core@npm:0.0.29"
+"@farcaster/frame-core@npm:0.0.31, @farcaster/frame-core@npm:^0.0.31":
+  version: 0.0.31
+  resolution: "@farcaster/frame-core@npm:0.0.31"
   dependencies:
     ox: "npm:^0.4.4"
     zod: "npm:^3.24.1"
-  checksum: 10/ce33949434b17c4d4e9a28b9afab3fb6f5af2d0b1a95bcd6fd41bc499387b13cb0e1b298ed9c46068d3a020396456d4b69aa8b57fba9d83473423b94a16f3c7f
+  checksum: 10/f44b6531f497040d8e08dc9b5b84f222a8d92d377a5615bf575ebff09faee98c7978ac665b28ea9712105b1fc10f6517fa939f0005012f3c253b14b5b039aa0c
   languageName: node
   linkType: hard
 
-"@farcaster/frame-node@npm:^0.0.18":
-  version: 0.0.18
-  resolution: "@farcaster/frame-node@npm:0.0.18"
+"@farcaster/frame-node@npm:^0.0.20":
+  version: 0.0.20
+  resolution: "@farcaster/frame-node@npm:0.0.20"
   dependencies:
-    "@farcaster/frame-core": "npm:0.0.29"
+    "@farcaster/frame-core": "npm:0.0.31"
     "@noble/curves": "npm:^1.7.0"
     ox: "npm:^0.4.4"
     zod: "npm:^3.24.1"
-  checksum: 10/61030699b3316d51bd252b3e1d6b485da393e3477ebd2530d3cd0a314055561607e50961d072e792df1e71c9c8e0c8b9d35e58cd0d2b6e1710f4eafb79f2f7a9
+  checksum: 10/38b6aa91349a0be2d2267327b13519984346fcd80b7ef804a68e48186b5152fd90931c1ffeb4cf26536279256a941c1421e9fcf2bb6d09d5db4264cda8e4bcf9
   languageName: node
   linkType: hard
 
@@ -742,26 +742,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@farcaster/frame-sdk@npm:^0.0.31":
-  version: 0.0.31
-  resolution: "@farcaster/frame-sdk@npm:0.0.31"
+"@farcaster/frame-sdk@npm:^0.0.34":
+  version: 0.0.34
+  resolution: "@farcaster/frame-sdk@npm:0.0.34"
   dependencies:
-    "@farcaster/frame-core": "npm:0.0.29"
+    "@farcaster/frame-core": "npm:0.0.31"
     comlink: "npm:^4.4.2"
     eventemitter3: "npm:^5.0.1"
     ox: "npm:^0.4.4"
-  checksum: 10/b617fdf9c3f1429bafd8676036c0718c8c07b056fbde2f5cbb1f13d495776cf1e67df84b6e6e34e25c4eabc62c78e7538cc33562d1ba06fd4aa720a865f960ea
+  checksum: 10/e30633cba4ccb15dc22655b6ea5188a2531ad501c4cdf805758acdd78dfc9a3f99ddc5a7518ae87ec6badb26c32057d1f0263f1fc174c34f21d12abb1884dd42
   languageName: node
   linkType: hard
 
-"@farcaster/frame-wagmi-connector@npm:^0.0.19":
-  version: 0.0.19
-  resolution: "@farcaster/frame-wagmi-connector@npm:0.0.19"
+"@farcaster/frame-wagmi-connector@npm:^0.0.22":
+  version: 0.0.22
+  resolution: "@farcaster/frame-wagmi-connector@npm:0.0.22"
   peerDependencies:
-    "@farcaster/frame-sdk": ^0.0.31
+    "@farcaster/frame-sdk": ^0.0.34
     "@wagmi/core": ^2.14.1
     viem: ^2.21.55
-  checksum: 10/008fcf50af5d70691a0895d8d862398eaaf0ddeed887a08877f45abe267e4c27e87a0a087530b868e92117d55b90d3ee35cbb5366e77546a48cbd571ced181ec
+  checksum: 10/0ef883d0405f2ab378c9177f0be97f5ca4d08d9d53bcf3a751b8e70b534af6bdf1895c1f92e04def59b92464018182c005402b45d1846eb6033af42025ac4b96
   languageName: node
   linkType: hard
 
@@ -810,7 +810,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@frames.js/debugger@npm:^0.5.0":
+"@frames.js/debugger@npm:0.5.0":
   version: 0.5.0
   resolution: "@frames.js/debugger@npm:0.5.0"
   dependencies:
@@ -5789,11 +5789,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "framesv2-nextjs-basic@workspace:."
   dependencies:
-    "@farcaster/frame-core": "npm:^0.0.29"
-    "@farcaster/frame-node": "npm:^0.0.18"
-    "@farcaster/frame-sdk": "npm:^0.0.31"
-    "@farcaster/frame-wagmi-connector": "npm:^0.0.19"
-    "@frames.js/debugger": "npm:^0.5.0"
+    "@farcaster/frame-core": "npm:^0.0.31"
+    "@farcaster/frame-node": "npm:^0.0.20"
+    "@farcaster/frame-sdk": "npm:^0.0.34"
+    "@farcaster/frame-wagmi-connector": "npm:^0.0.22"
+    "@frames.js/debugger": "npm:0.5.0"
     "@ianvs/prettier-plugin-sort-imports": "npm:^4.4.1"
     "@radix-ui/react-dialog": "npm:^1.1.7"
     "@radix-ui/react-popover": "npm:^1.1.6"
