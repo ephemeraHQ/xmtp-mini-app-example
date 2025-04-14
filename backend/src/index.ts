@@ -35,8 +35,9 @@ const initializeXmtpClient = async () => {
 
   // Railway deployment support
   const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? ".data/xmtp";
+  console.log("volumePath", volumePath);
   const dbPath = `${volumePath}/${user.account.address.toLowerCase()}-${env.XMTP_ENV}`;
-
+  console.log("dbPath", dbPath);
   // Create database directory if it doesn't exist
   if (!fs.existsSync(volumePath)) {
     fs.mkdirSync(volumePath, { recursive: true });
