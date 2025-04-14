@@ -30,13 +30,14 @@ const initializeXmtpClient = async () => {
     : generateEncryptionKeyHex();
 
   const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? ".data/xmtp";
+  console.log("volumePath", volumePath);
   // Ensure the volume path directory exists
   fs.mkdirSync(volumePath, { recursive: true });
 
   const identifier = await signer.getIdentifier();
   const address = identifier.identifier;
   const dbPath = `${volumePath}/${address}-${env.XMTP_ENV}`;
-
+  console.log("dbPath", dbPath);
   // Create and initialize the client
   xmtpClient = await Client.create(
     signer,
