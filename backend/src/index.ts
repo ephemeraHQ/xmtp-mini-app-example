@@ -38,8 +38,8 @@ const initializeXmtpClient = async () => {
   const dbPath = `${volumePath}/${user.account.address.toLowerCase()}-${env.XMTP_ENV}`;
 
   // Create database directory if it doesn't exist
-  if (!fs.existsSync(dbPath)) {
-    fs.mkdirSync(dbPath, { recursive: true });
+  if (!fs.existsSync(volumePath)) {
+    fs.mkdirSync(volumePath, { recursive: true });
   }
 
   // Create and initialize the client
@@ -48,6 +48,7 @@ const initializeXmtpClient = async () => {
     getEncryptionKeyFromHex(encryptionKey),
     {
       env: env.XMTP_ENV,
+      dbPath,
     },
   );
 
@@ -63,10 +64,11 @@ const initializeXmtpClient = async () => {
 // Ensure the client is a super admin of the default group
 const ensureSuperAdmin = async () => {
   try {
+    await xmtpClient.requestHistorySync();
+    await xmtpClient.conversations.sync();
     const conversation = await xmtpClient.conversations.getConversationById(
       env.XMTP_DEFAULT_CONVERSATION_ID,
     );
-
     if (!conversation) {
       throw new Error(
         `Conversation not found with id: ${env.XMTP_DEFAULT_CONVERSATION_ID} on env: ${env.XMTP_ENV}`,
