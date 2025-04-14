@@ -7,7 +7,6 @@ import helmet from "helmet";
 import { env } from "./lib/env.js";
 import {
   createSigner,
-  createUser,
   generateEncryptionKeyHex,
   getEncryptionKeyFromHex,
 } from "./lib/xmtp-utils.js";
@@ -24,24 +23,19 @@ export let xmtpClient: Client;
 const initializeXmtpClient = async () => {
   // create ephemeral node signer
   const signer = createSigner(env.XMTP_PRIVATE_KEY);
-  const user = createUser(env.XMTP_PRIVATE_KEY);
 
   // Get or create encryption key
   const encryptionKey = env.XMTP_ENCRYPTION_KEY
     ? env.XMTP_ENCRYPTION_KEY
     : generateEncryptionKeyHex();
 
-  console.log("Creating XMTP Node client with encryption key", encryptionKey);
-
-  // Railway deployment support
   const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? ".data/xmtp";
-  console.log("volumePath", volumePath);
-  const dbPath = `${volumePath}/${user.account.address.toLowerCase()}-${env.XMTP_ENV}`;
-  console.log("dbPath", dbPath);
-  // Create database directory if it doesn't exist
-  if (!fs.existsSync(volumePath)) {
-    fs.mkdirSync(volumePath, { recursive: true });
-  }
+  // Ensure the volume path directory exists
+  fs.mkdirSync(volumePath, { recursive: true });
+
+  const identifier = await signer.getIdentifier();
+  const address = identifier.identifier;
+  const dbPath = `${volumePath}/${address}-${env.XMTP_ENV}`;
 
   // Create and initialize the client
   xmtpClient = await Client.create(
