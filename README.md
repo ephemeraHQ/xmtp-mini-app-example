@@ -29,13 +29,13 @@ Start the frontend and backend servers:
 ```bash
 cd frontend
 cp .env.example .env.local
-yarn i
-yarn run dev
+yarn install
+yarn dev
 ```
 
 ```bash
 cd backend
 cp .env.example .env.local
-yarn i
-yarn run dev
+yarn install
+yarn dev
 ```
