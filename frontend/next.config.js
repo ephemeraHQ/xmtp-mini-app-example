@@ -59,8 +59,8 @@ const nextConfig = {
       },
     ];
   },
-  // Simplified output configuration
-  output: "standalone",
+  // This setting prevents Next.js from trying to statically generate dynamic routes
+  staticPageGenerationTimeout: 1000,
 };
 
 export default nextConfig;
