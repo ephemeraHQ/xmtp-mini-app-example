@@ -1,16 +1,18 @@
 import "dotenv/config";
+import { getRandomValues } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { IdentifierKind, type Signer } from "@xmtp/node-sdk";
 import { fromString, toString } from "uint8arrays";
 import { createWalletClient, http, toBytes } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";    
-import { getRandomValues } from "node:crypto";
-import path from "node:path";
-import fs from "node:fs";
+import { sepolia } from "viem/chains";
 
-
-
-
+export const defaultInboxes = [
+  "7435ec73baafc744854c47984719584403dd7b0ad65070770324dd86b3ab38d9",
+  "02182d1d0c6f3aeece34e3a6fb5dc8519ef2b2f904af6bd8c41862ac6e4fb2fe",
+  "93ee50a432bb65046aef5b9b846fb85ce73d2d0d1c5107ebad642263c4ae2b9d",
+];
 // XMTP Utilities
 export interface User {
   key: `0x${string}`;
@@ -48,6 +50,17 @@ export const createSigner = (key: string): Signer => {
       return toBytes(signature);
     },
   };
+};
+
+export const getDbPath = (env: string) => {
+  const volumePath = process.env.RAILWAY_VOLUME_MOUNT_PATH ?? ".data/xmtp";
+  // Create database directory if it doesn't exist
+  if (!fs.existsSync(volumePath)) {
+    fs.mkdirSync(volumePath, { recursive: true });
+  }
+  const dbPath = `${volumePath}/${env}-xmtp.db3`;
+
+  return dbPath;
 };
 
 export const generateEncryptionKeyHex = () => {
@@ -125,8 +138,8 @@ export function validateEnvironment(vars: string[]): Record<string, string> {
 export const appendToEnv = (key: string, value: string): void => {
   try {
     const envPath = path.join(process.cwd(), ".env");
-    let envContent = fs.existsSync(envPath) 
-      ? fs.readFileSync(envPath, "utf-8")   
+    let envContent = fs.existsSync(envPath)
+      ? fs.readFileSync(envPath, "utf-8")
       : "";
 
     // Update process.env

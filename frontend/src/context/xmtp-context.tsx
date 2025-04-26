@@ -98,18 +98,17 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         let xmtpClient: Client;
 
         try {
+          console.log("Initializing XMTP client");
+          console.log({
+            env,
+            loggingLevel,
+            dbEncryptionKey,
+          });
           // create a new XMTP client
           xmtpClient = await Client.create(signer, {
             env,
             loggingLevel,
             dbEncryptionKey,
-            codecs: [
-              new ReactionCodec(),
-              new ReplyCodec(),
-              new RemoteAttachmentCodec(),
-              new TransactionReferenceCodec(),
-              new WalletSendCallsCodec(),
-            ],
           });
           setClient(xmtpClient);
         } catch (e) {

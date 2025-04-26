@@ -23,7 +23,7 @@ API_SECRET_KEY= # Secret key for API authentication, generate with openssl rand 
 XMTP_PRIVATE_KEY= # XMTP private key
 XMTP_ENCRYPTION_KEY= # XMTP encryption key
 XMTP_ENV=dev # XMTP environment (dev/local/production)
-XMTP_DEFAULT_CONVERSATION_ID= # Default XMTP conversation ID
+GROUP_ID= # Default XMTP conversation ID
 ```
 
 ### Run the backend
@@ -64,4 +64,4 @@ request headers as `x-api-secret`.
 - `XMTP_PRIVATE_KEY`: XMTP private key
 - `XMTP_ENCRYPTION_KEY`: XMTP encryption key
 - `XMTP_ENV`: XMTP environment (dev/local/production)
-- `XMTP_DEFAULT_CONVERSATION_ID`: Default XMTP conversation ID
+- `GROUP_ID`: Default XMTP conversation ID

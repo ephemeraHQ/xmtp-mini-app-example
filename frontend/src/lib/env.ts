@@ -21,6 +21,6 @@ export const env = createEnv({
   experimental__runtimeEnv: {
     NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL,
     NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
-    NEXT_PUBLIC_XMTP_ENV: process.env.XMTP_ENV,
+    NEXT_PUBLIC_XMTP_ENV: process.env.NEXT_PUBLIC_XMTP_ENV,
   },
 });
