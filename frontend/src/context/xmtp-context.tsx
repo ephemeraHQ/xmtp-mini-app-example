@@ -92,6 +92,20 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 
         let xmtpClient: Client;
 
+        // Add this before initializing the XMTP client
+        try {
+          localStorage.setItem("XMTP_TEST", "test");
+          const test = localStorage.getItem("XMTP_TEST");
+          if (test !== "test") {
+            console.error("localStorage not working properly");
+          } else {
+            console.log("localStorage working properly");
+          }
+          localStorage.removeItem("XMTP_TEST");
+        } catch (error) {
+          console.error("Error accessing localStorage:", error);
+        }
+
         try {
           console.log("Initializing XMTP client");
           console.log({
