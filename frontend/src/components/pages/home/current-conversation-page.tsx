@@ -44,6 +44,14 @@ export default function CurrentConversationPage({
     undefined,
   );
 
+  // Log when component mounts
+  useEffect(() => {
+    console.log("CurrentConversationPage mounted with conversation:", conversation.id);
+    return () => {
+      console.log("CurrentConversationPage unmounted");
+    };
+  }, [conversation.id]);
+
   useEffect(() => {
     const loadClientAddress = async () => {
       if (!client || !client.inboxId) return;

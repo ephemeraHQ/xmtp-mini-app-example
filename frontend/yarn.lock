@@ -1821,13 +1821,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@noble/secp256k1@npm:^2.2.3":
-  version: 2.2.3
-  resolution: "@noble/secp256k1@npm:2.2.3"
-  checksum: 10/ea2947063136819f07e3c1493888c778c49555432322b11f50030daa297fe5c0446f672711728aef695b51ff4d9be8747b065793b95396c2ed8dd826fa08941c
-  languageName: node
-  linkType: hard
-
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -3435,51 +3428,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@xmtp/content-type-primitives@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@xmtp/content-type-primitives@npm:2.0.1"
-  dependencies:
-    "@xmtp/proto": "npm:^3.78.0"
-  checksum: 10/966d17a2ef9b70452348651e7eb56d858608d4b910343bdc8886bc73693040ea34ce69bac74bd4367404f6cf6f7b6ec7b25a2dd25c507fc35bee1447065ea02d
-  languageName: node
-  linkType: hard
-
 "@xmtp/content-type-primitives@npm:^2.0.2":
   version: 2.0.2
   resolution: "@xmtp/content-type-primitives@npm:2.0.2"
   dependencies:
     "@xmtp/proto": "npm:^3.78.0"
   checksum: 10/9c115c1e792bca5e5e7180ba5494786bd3554265bc0ccdcb26d645689634ae239cefb3996bbbe493a487a2c8c7bf4e85954f4063811f784021afe16e58b1b03b
-  languageName: node
-  linkType: hard
-
-"@xmtp/content-type-reaction@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@xmtp/content-type-reaction@npm:2.0.1"
-  dependencies:
-    "@xmtp/content-type-primitives": "npm:^2.0.1"
-  checksum: 10/e2544e9146d92e67a03345545118c63b633d062fd6347d05d5ec8486059324450d3c96a72f56913bf342614fb778ee148dd4f6c03e95f98419b972d3763213b6
-  languageName: node
-  linkType: hard
-
-"@xmtp/content-type-remote-attachment@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@xmtp/content-type-remote-attachment@npm:2.0.1"
-  dependencies:
-    "@noble/secp256k1": "npm:^2.2.3"
-    "@xmtp/content-type-primitives": "npm:^2.0.1"
-    "@xmtp/proto": "npm:^3.78.0"
-  checksum: 10/c0e3710f585a1a81cc0fbd7e8d1d71c2ae40a820b01c52bd36b59fed1159cef17ec689ba3cd8e4e83870db23ca119ba9d094656431033b1c8413e5af1bfa44e9
-  languageName: node
-  linkType: hard
-
-"@xmtp/content-type-reply@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@xmtp/content-type-reply@npm:2.0.1"
-  dependencies:
-    "@xmtp/content-type-primitives": "npm:^2.0.1"
-    "@xmtp/proto": "npm:^3.78.0"
-  checksum: 10/c34d4fbcc6e7e5f056d87bf017721c70b06bbe30657caedb528236160df43e1ce5bbaee1e7d316dfab87f56027c8e56488ad46bc055afd15c30bbb2b79920acf
   languageName: node
   linkType: hard
 
@@ -3498,24 +3452,6 @@ __metadata:
   dependencies:
     "@xmtp/content-type-primitives": "npm:^2.0.2"
   checksum: 10/21905043e8b90845223f8e7a86c43c40881bec401ebf840d4f94ab4050cf6b3e071e2b235d51426e7179e767e6e1a77a2cf2689582629deda7b1dc5ec646b110
-  languageName: node
-  linkType: hard
-
-"@xmtp/content-type-transaction-reference@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@xmtp/content-type-transaction-reference@npm:2.0.1"
-  dependencies:
-    "@xmtp/content-type-primitives": "npm:^2.0.1"
-  checksum: 10/809fa9e24241e358fe86030b52ba0005555ffc2bfb0520decbbe9057b54b784c92c5bb2ddaffe27ef0b21cec5d8809c74ded2a0ac297f5f6c747af95be6c133d
-  languageName: node
-  linkType: hard
-
-"@xmtp/content-type-wallet-send-calls@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "@xmtp/content-type-wallet-send-calls@npm:1.0.0"
-  dependencies:
-    "@xmtp/content-type-primitives": "npm:^2.0.1"
-  checksum: 10/8157fe51b8917c12c924cb011faedd0391b6881915a1401de34909379f03559f5b4507c7bd9759671f744ebdea7d43d54ade957b77a6fad95cd99cbb96902a7e
   languageName: node
   linkType: hard
 
@@ -5816,11 +5752,6 @@ __metadata:
     "@types/react-dom": "npm:^18"
     "@vercel/og": "npm:^0.6.5"
     "@xmtp/browser-sdk": "npm:^2.0.8"
-    "@xmtp/content-type-reaction": "npm:^2.0.1"
-    "@xmtp/content-type-remote-attachment": "npm:^2.0.1"
-    "@xmtp/content-type-reply": "npm:^2.0.1"
-    "@xmtp/content-type-transaction-reference": "npm:^2.0.1"
-    "@xmtp/content-type-wallet-send-calls": "npm:^1.0.0"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     dotenv: "npm:^16.4.7"

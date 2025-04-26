@@ -51,6 +51,7 @@ export default function HomePage() {
   // Initialize XMTP client with wallet signer
   useEffect(() => {
     if (walletData?.account) {
+    
       void initialize({
         dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
         env: env.NEXT_PUBLIC_XMTP_ENV,
