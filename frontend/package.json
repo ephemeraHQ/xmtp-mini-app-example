@@ -1,11 +1,14 @@
 {
-  "name": "framesv2-nextjs-basic",
-  "version": "0.1.0",
+  "name": "xmtp-mini-app",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "next build",
+    "build:no-cache": "yarn clear-cache && next build",
+    "clear-cache": "rm -rf .next/cache",
     "dev": "next dev",
+    "dev:no-cache": "yarn clear-cache && next dev",
     "format": "prettier --write .",
     "frames": "frames ",
     "lint": "next lint",

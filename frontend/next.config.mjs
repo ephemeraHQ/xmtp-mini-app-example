@@ -49,6 +49,39 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@xmtp/node-bindings"],
   },
+  // Disable all caching
+  onDemandEntries: {
+    // Make Next.js not keep pages in memory
+    maxInactiveAge: 0,
+  },
+  // Prevent static optimizations
+  swcMinify: true,
+  // Disable static generation
+  output: "standalone",
+  // Disable caching of static assets
+  staticPageGenerationTimeout: 0,
+  headers: async () => {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value:
+              "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+          {
+            key: "Pragma",
+            value: "no-cache",
+          },
+          {
+            key: "Expires",
+            value: "0",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

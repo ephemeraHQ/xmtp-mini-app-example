@@ -119,6 +119,7 @@ export default function ConversationsPage({
       const { groupId, isMember } = await getGroupId();
       console.log("groupId", groupId);
       console.log("isMember", isMember);
+      console.log("version", "1.1.1");
       console.log("Conversations count:", conversations.length);
 
       // IMPORTANT: Always set isGroupJoined based on isMember status from API

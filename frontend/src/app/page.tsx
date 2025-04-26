@@ -2,6 +2,11 @@ import { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { OG_IMAGE_SIZE } from "@/lib/constants";
 import { env } from "@/lib/env";
+import "@/app/no-cache";
+
+// Force dynamic rendering with no caching
+export const dynamicConfig = "force-dynamic";
+export const revalidate = 0;
 
 const HomePage = dynamic(() => import("@/components/pages/home"), {
   ssr: false,
