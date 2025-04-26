@@ -6,7 +6,7 @@ You're an expert in writing TypeScript with Node.js. Generate **high-quality XMT
 
 1.  Use modern TypeScript patterns and ESM modules. All examples should be structured as ES modules with `import` statements rather than CommonJS `require()`.
 
-2.  Use the XMTP node-sdk v1.2.0 or newer, which offers enhanced functionality including group conversations.
+2.  Use the XMTP node-sdk version "2.0.2" or newer, which offers enhanced functionality including group conversations.
 
 3.  Only import from @xmtp/node-sdk for XMTP functionality. Do not import from any other XMTP-related packages or URLs. Specifically:
 
@@ -27,7 +27,8 @@ You're an expert in writing TypeScript with Node.js. Generate **high-quality XMT
     ```typescript
     const signer = createSigner(WALLET_KEY);
     const encryptionKey = getEncryptionKeyFromHex(ENCRYPTION_KEY);
-    const client = await Client.create(signer, encryptionKey, {
+    const client = await Client.create(signer, {
+      dbEncryptionKey: encryptionKey,
       env: XMTP_ENV as XmtpEnv,
     });
     ```
@@ -213,109 +214,6 @@ You're an expert in writing TypeScript with Node.js. Generate **high-quality XMT
     > [!IMPORTANT]
     > Never create your own key generation script. The built-in command follows security best practices and uses the correct dependencies
 
-20. Package.json Guidelines
-
-    Use proper package naming convention:
-
-    ```json
-    {
-      "name": "@examples/xmtp-your-agent-name"
-    }
-    ```
-
-    Always include these standard fields:
-
-    ```json
-    {
-      "version": "0.0.1",
-      "private": true,
-      "type": "module"
-    }
-    ```
-
-    Standard scripts configuration:
-
-    ```json
-    {
-      "scripts": {
-        "build": "tsc",
-        "clean": "cd ../../ && rm -rf examples/xmtp-group-toss/.data",
-        "dev": "tsx --watch src/index.ts",
-        "gen:keys": "tsx ../../scripts/generateKeys.ts",
-        "lint": "cd ../.. && yarn eslint examples/xmtp-group-toss",
-        "start": "tsx src/index.ts"
-      }
-    }
-    ```
-
-    Dependencies:
-
-    - Use exact version of @xmtp/node-sdk (not ^)
-    - Current version should be 1.2.0
-
-    ```json
-    {
-      "dependencies": {
-        "@xmtp/node-sdk": "1.2.0"
-        /* other dependencies */
-      }
-    }
-    ```
-
-    DevDependencies:
-
-    - Use tsx instead of ts-node
-    - Include specific versions
-
-    ```json
-    {
-      "devDependencies": {
-        "tsx": "^4.19.2",
-        "typescript": "^5.7.3"
-      }
-    }
-    ```
-
-    Package manager and engine specifications:
-
-    ```json
-    {
-      "packageManager": "yarn@4.6.0",
-      "engines": {
-        "node": ">=20"
-      }
-    }
-    ```
-
-    Here's how the correct package.json should look for a simple agent:
-
-    ```json
-    {
-      "name": "@examples/xmtp-gm",
-      "version": "0.0.1",
-      "private": true,
-      "type": "module",
-      "scripts": {
-        "build": "tsc",
-        "dev": "tsx --watch index.ts",
-        "gen:keys": "tsx ../../scripts/generateKeys.ts",
-        "lint": "cd ../.. && yarn eslint examples/xmtp-gm",
-        "start": "tsx index.ts"
-      },
-      "dependencies": {
-        "@xmtp/node-sdk": "1.2.0"
-      },
-      "devDependencies": {
-        "tsx": "^4.19.2",
-        "typescript": "^5.7.3"
-      },
-      "packageManager": "yarn@4.6.0",
-      "engines": {
-        "node": ">=20"
-      }
-    }
-    ```
-
 ## Example: XMTP Group Creator Agent
 
 ### Prompt:
@@ -341,20 +239,16 @@ const { WALLET_KEY, ENCRYPTION_KEY, XMTP_ENV } = validateEnvironment([
 // Define the address to always add to new groups
 const MEMBER_ADDRESS = "0x7c40611372d354799d138542e77243c284e460b2";
 
-// Initialize client
-const signer = createSigner(WALLET_KEY);
-const encryptionKey = getEncryptionKeyFromHex(ENCRYPTION_KEY);
-
 async function main() {
-  const client = await Client.create(signer, encryptionKey, {
+  // Initialize client
+  const signer = createSigner(WALLET_KEY);
+  const dbEncryptionKey = getEncryptionKeyFromHex(ENCRYPTION_KEY);
+  const client = await Client.create(signer, {
+    dbEncryptionKey,
     env: XMTP_ENV as XmtpEnv,
   });
 
-  // Log connection details
-  const identifier = await signer.getIdentifier();
-  const address = identifier.identifier;
-
-  logAgentDetails(address, client.inboxId, XMTP_ENV);
+  logAgentDetails(client);
 
   console.log("✓ Syncing conversations...");
   /* Sync the conversations from the network to update the local db */
@@ -883,7 +777,6 @@ When working with these classes:
 
 1. **Client**
 
-   - Created with `Client.create(signer, encryptionKey, options)`
    - Gateway to all XMTP functionality
    - Contains the conversations, contacts, and content types registries
 
@@ -917,7 +810,9 @@ When working with these classes:
 
 ## Other Notes
 
-### Handling local database
+### Handling local database paths
+
+If no `dbPath` is provided, the client will use the current working directory. You can also specify a custom path for the database.
 
 ```jsx
 // Railway deployment support
@@ -928,25 +823,12 @@ const dbPath = `${volumePath}/${signer.getIdentifier()}-${XMTP_ENV}`;
 if (!fs.existsSync(dbPath)) {
   fs.mkdirSync(dbPath, { recursive: true });
 }
-```
 
-### Web inbox
-
-Interact with the XMTP network using [xmtp.chat](https://xmtp.chat), the official web inbox for developers.
-
-### Work in local network
-
-`dev` and `production` networks are hosted by XMTP, while `local` network is hosted by yourself.
-
-- 1. Install docker
-- 2. Start the XMTP service and database
-
-```tsx
-./dev/up
-```
-
-- 3. Change the .env file to use the local network
-
-```tsx
-XMTP_ENV = local;
+// Create a client with db path
+const client = await Client.create(signer, {
+  dbEncryptionKey,
+  env: XMTP_ENV as XmtpEnv,
+  // Use a unique DB directory
+  dbPath,
+});
 ```
