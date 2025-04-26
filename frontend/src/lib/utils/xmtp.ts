@@ -8,7 +8,6 @@ import { toBytes, type WalletClient } from "viem";
 export const createSCWSigner = (
   address: `0x${string}`,
   walletClient: WalletClient,
-  chainId?: bigint | number,
 ): Signer => {
   // The secret sauce is that for WebAuthn/Passkey signatures, we need to:
   // 1. Extract signature data from a specific position in the payload
@@ -107,13 +106,8 @@ export const createSCWSigner = (
       }
     },
     getChainId: () => {
-      console.log("getChainId called, value:", chainId);
-      if (chainId === undefined) {
-        return BigInt(1);
-      }
-
       try {
-        return BigInt(chainId.toString());
+        return BigInt(8453);
       } catch (error) {
         console.error("Error converting chainId to BigInt:", error);
         return BigInt(1);
