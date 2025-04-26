@@ -57,7 +57,7 @@ const nextConfig = {
   // Prevent static optimizations
   swcMinify: true,
   // Disable static generation
-  output: "standalone",
+
   // Disable caching of static assets
   staticPageGenerationTimeout: 0,
   headers: async () => {
