@@ -24,9 +24,15 @@ export default function ConversationsPage({
   const [groupConversation, setGroupConversation] =
     useState<Conversation | null>(null);
 
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const getGroupId = async () => {
+    const res = await fetch("/api/proxy/get-group-id");
+    const data = await res.json();
+    setGroupId(data.groupId);
+  };
   useEffect(() => {
     if (conversations.length >= 0) {
-      handleFetchGroupId();
+      getGroupId();
     }
   }, [conversations]);
 
@@ -64,33 +70,6 @@ export default function ConversationsPage({
     }
   };
 
-  const handleFetchGroupId = async () => {
-    try {
-      const getGroupId = async () => {
-        const res = await fetch("/api/proxy/get-group-id");
-        const data = await res.json();
-        return data.groupId;
-      };
-
-      const groupId = await getGroupId();
-      console.log("groupId", groupId);
-      const foundGroup = conversations.find((conv) => conv.id === groupId);
-      console.log("foundGroup", foundGroup);
-      if (foundGroup) {
-        await foundGroup?.sync();
-        console.log("foundGroup", foundGroup);
-        if ((foundGroup as Group).isActive) {
-          setIsGroupJoined(true);
-          setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
-          setGroupConversation(foundGroup);
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching group ID:", error);
-      setErrorMessage("Failed to fetch group ID");
-    }
-  };
-
   const handleAddMeToDefaultConversation = async () => {
     if (!client) return;
 
@@ -105,11 +84,12 @@ export default function ConversationsPage({
         })
         .json();
       setJoining(false);
-
       if (data.success) {
         const newConversations = await list(undefined, true);
         setConversations(newConversations);
+        setIsGroupJoined(true);
       } else {
+        setIsGroupJoined(false);
         console.warn("Failed to add me to the default conversation", data);
         setErrorMessage(data.message);
       }

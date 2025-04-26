@@ -3,7 +3,7 @@
 import farcasterFrame from "@farcaster/frame-wagmi-connector";
 import { ClientOptions } from "@xmtp/browser-sdk";
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { hexToUint8Array } from "uint8array-extras";
 import { useLocalStorage } from "usehooks-ts";
 import { injected, useAccount, useConnect, useWalletClient } from "wagmi";
@@ -24,7 +24,7 @@ const HomeContent = dynamic(
 export default function HomePage() {
   const { context, actions } = useFrame();
   const insets = context ? context.client.safeAreaInsets : undefined;
-  const { initialize, initializing } = useXMTP();
+  const { initialize, initializing, conversations } = useXMTP();
   const { data: walletData } = useWalletClient();
   const { isConnected, address } = useAccount();
   const { connect } = useConnect();
@@ -32,6 +32,7 @@ export default function HomePage() {
     "XMTP_LOGGING_LEVEL",
     "off",
   );
+  const [isGroupJoined, setIsGroupJoined] = useState(false);
 
   // Connect to Farcaster wallet
   useEffect(() => {
@@ -75,6 +76,29 @@ export default function HomePage() {
     }
     saveFrame();
   }, [context, actions]);
+
+  // Check if user is in group on start
+  useEffect(() => {
+    async function checkGroupJoined() {
+      try {
+        console.log("checking group joined");
+        const res = await fetch("/api/proxy/get-group-id");
+        const data = await res.json();
+        const groupId = data.groupId;
+        const foundGroup = conversations.find((conv) => conv.id === groupId);
+        console.log("foundGroup", conversations.length, foundGroup);
+        if (foundGroup && foundGroup.isActive !== false) {
+          setIsGroupJoined(true);
+        } else {
+          setIsGroupJoined(false);
+        }
+      } catch (error) {
+        setIsGroupJoined(false);
+      }
+    }
+    checkGroupJoined();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations]);
 
   return (
     <SafeAreaContainer insets={insets}>
