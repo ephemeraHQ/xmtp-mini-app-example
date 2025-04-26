@@ -66,7 +66,7 @@ export async function getFarcasterManifest() {
       name: "XMTP MiniApp",
       iconUrl: `${env.NEXT_PUBLIC_URL}/images/icon.png`,
       homeUrl: env.NEXT_PUBLIC_URL,
-      imageUrl: `${env.NEXT_PUBLIC_URL}/api/og`,
+      imageUrl: `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`,
       buttonTitle: "Launch XMTP MiniApp",
       splashImageUrl: `${env.NEXT_PUBLIC_URL}/images/splash.png`,
       splashBackgroundColor: "#0d0d0d",
