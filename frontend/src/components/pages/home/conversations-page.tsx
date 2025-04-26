@@ -44,11 +44,8 @@ export default function ConversationsPage({
         const data = await res.json();
         return { groupId: data.groupId, isMember: data.isMember };
       };
-
+      console.log("client", "2.2.2");
       const { groupId, isMember } = await getGroupId();
-      console.log("groupId", groupId);
-      console.log("isMember", isMember);
-      console.log("Conversations count:", conversations.length);
 
       // IMPORTANT: Always set isGroupJoined based on isMember status from API
       // This ensures the Leave Group button appears whenever the user is a member
