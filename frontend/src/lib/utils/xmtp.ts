@@ -34,6 +34,19 @@ export const createSCWSigner = (
         const sigBytes = toBytes(signature);
         console.log("Signature bytes length:", sigBytes.length);
 
+        if (process.env.VERCEL) {
+          console.log("Running in Vercel environment");
+          // Log more details about the signature
+          if (sigBytes.length > 100) {
+            console.log("WebAuthn signature detected in Vercel");
+            // Log chunks of the signature to find where the valid bytes are
+            for (let i = 0; i < sigBytes.length; i += 64) {
+              const chunk = sigBytes.slice(i, i + 64);
+              console.log(`Bytes ${i}-${i + 63}:`, Array.from(chunk));
+            }
+          }
+        }
+
         // Check if it's a WebAuthn signature (large byte array)
         if (sigBytes.length > 100) {
           console.log("WebAuthn signature detected");
