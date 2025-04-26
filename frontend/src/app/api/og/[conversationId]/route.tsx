@@ -42,6 +42,7 @@ export async function GET(
       `[/api/og/${conversationId ?? "default"}] Error generating image:`,
       (e as Error).message,
     );
+    // Fallback to a simple response without fonts if there's an error
     return new ImageResponse(<DefaultImage />, {
       ...OG_IMAGE_SIZE,
     });

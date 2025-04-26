@@ -12,8 +12,9 @@ export async function GET() {
     });
   } catch (e: unknown) {
     console.error(`[api/og] Error generating image:`, (e as Error).message);
-    return new Response(`Failed to generate the image`, {
-      status: 500,
+    // Fallback to a simpler response if fonts fail
+    return new ImageResponse(<DefaultImage />, {
+      ...OG_IMAGE_SIZE,
     });
   }
 }
