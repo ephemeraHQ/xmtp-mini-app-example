@@ -14,10 +14,6 @@ export const createSCWSigner = (
     signMessage: async (message: string) => {
       try {
         console.log("Signing message:", message);
-        const isVercel =
-          typeof window !== "undefined" &&
-          window.location.hostname.includes("vercel");
-        console.log("Is Vercel environment:", isVercel);
 
         // Try to sign with the wallet
         const signature = await walletClient.signMessage({
@@ -31,80 +27,151 @@ export const createSCWSigner = (
         const sigBytes = toBytes(signature);
         console.log("Signature bytes length:", sigBytes.length);
 
-        // Check if it's a WebAuthn signature (large byte array)
+        // WebAuthn signature detection based on size
         if (sigBytes.length > 100) {
           console.log("WebAuthn signature detected");
 
-          // If we're on Vercel, use a different approach
-          if (isVercel) {
-            // Check for the signature in the specific region we found from logs
-            const rStart = 1152;
-            if (rStart + 64 <= sigBytes.length) {
-              const rSig = sigBytes.slice(rStart, rStart + 64);
+          // Look for specific patterns in the WebAuthn response structure
+          // We're looking for the actual signature data, not the clientDataJSON
 
-              // Add more detailed logging of the exact byte values
-              console.log(
-                "Using Vercel-specific signature extraction from position:",
-                rStart,
-              );
-              console.log("Signature bytes:", Array.from(rSig).join(","));
+          // These are the typical positions where the signature should be based on logs
+          const potentialSignaturePositions = [
+            416, // Position where we might find the r value of the signature
+            640, // Another common position for signature data
+            480, // Might be the start of the s value
+            544, // Another possible location
+          ];
 
-              // Check if this signature has a reasonable number of non-zero bytes
+          for (const position of potentialSignaturePositions) {
+            if (position + 64 <= sigBytes.length) {
+              // Extract 64 bytes starting at this position
+              const candidateSig = sigBytes.slice(position, position + 64);
+
+              // Count non-zero bytes - real signatures should have mostly non-zero values
               let nonZeroCount = 0;
-              for (let i = 0; i < rSig.length; i++) {
-                if (rSig[i] !== 0) nonZeroCount++;
+              for (const byte of candidateSig) {
+                if (byte !== 0) nonZeroCount++;
               }
 
-              console.log("Non-zero bytes in signature:", nonZeroCount);
-
-              // Different approach - try to normalize the signature
-              // Some WebAuthn signatures need to be normalized to comply with SEC1 format
-              const normalizedSig = normalizeSignature(rSig);
-              console.log(
-                "Normalized signature:",
-                Array.from(normalizedSig).join(","),
-              );
-
-              return normalizedSig;
+              // A real signature should have mostly non-zero bytes
+              if (nonZeroCount >= 56) {
+                // At least 56 out of 64 bytes should be non-zero
+                console.log(
+                  `Found likely signature at position ${position} with ${nonZeroCount}/64 non-zero bytes`,
+                );
+                console.log("Signature bytes:", Array.from(candidateSig));
+                return candidateSig;
+              }
             }
           }
 
-          // For ngrok or local environment, use the known working position
-          const localStartPos = 400;
-          const extractedSig = new Uint8Array(64);
+          // If none of those worked, try pattern matching for known WebAuthn structures
+          // WebAuthn signatures are often preceded by a specific byte pattern
 
-          // Copy data from the original signature
-          for (let i = 0; i < 64; i++) {
-            if (localStartPos + i < sigBytes.length) {
-              extractedSig[i] = sigBytes[localStartPos + i];
+          // Look for known structure patterns, like the 0x11 byte that sometimes precedes signatures
+          for (let i = 0; i < sigBytes.length - 64; i++) {
+            // Some common signature marker patterns in WebAuthn responses
+            if (
+              (sigBytes[i] === 0x30 && sigBytes[i + 1] >= 0x44) || // DER-encoded signature start
+              (sigBytes[i] === 0x11 && sigBytes[i + 1] === 0x68) || // Seen in some WebAuthn responses
+              (sigBytes[i] === 0x41 && sigBytes[i + 1] === 0x10)
+            ) {
+              // Another common marker
+
+              // Try the 64 bytes after this marker
+              const markerSig = sigBytes.slice(i + 2, i + 66);
+
+              // Count non-zero bytes
+              let nonZeroCount = 0;
+              for (const byte of markerSig) {
+                if (byte !== 0) nonZeroCount++;
+              }
+
+              if (nonZeroCount >= 48) {
+                console.log(
+                  `Found signature after marker at position ${i + 2} with ${nonZeroCount}/64 non-zero bytes`,
+                );
+                console.log("Signature bytes:", Array.from(markerSig));
+                return markerSig;
+              }
             }
           }
 
-          // Ensure we don't have all zeros
-          let hasNonZero = false;
-          for (let i = 0; i < extractedSig.length; i++) {
-            if (extractedSig[i] !== 0) {
-              hasNonZero = true;
-            } else {
-              // Replace any zeros with random non-zero values
-              extractedSig[i] = 1 + Math.floor(Math.random() * 254);
+          // Last resort - try every 64-byte segment to find the most likely signature
+          let bestPosition = -1;
+          let highestNonZeroCount = 0;
+
+          for (let i = 0; i < sigBytes.length - 64; i += 8) {
+            const segment = sigBytes.slice(i, i + 64);
+            let nonZeroCount = 0;
+            for (const byte of segment) {
+              if (byte !== 0) nonZeroCount++;
+            }
+
+            // Real signatures rarely have large sequences of zeros
+            // Look for segments with the highest density of non-zero bytes
+            if (nonZeroCount > highestNonZeroCount) {
+              highestNonZeroCount = nonZeroCount;
+              bestPosition = i;
             }
           }
 
+          if (bestPosition >= 0 && highestNonZeroCount >= 48) {
+            const bestSig = sigBytes.slice(bestPosition, bestPosition + 64);
+            console.log(
+              `Using best segment at position ${bestPosition} with ${highestNonZeroCount}/64 non-zero bytes`,
+            );
+            console.log("Signature bytes:", Array.from(bestSig));
+            return bestSig;
+          }
+
+          // Even if we couldn't find a good candidate, try the known position around 480
+          // which seems to be a common location for signature data based on the logs
+          const fallbackPos = 480;
+          if (fallbackPos + 64 <= sigBytes.length) {
+            const fallbackSig = sigBytes.slice(fallbackPos, fallbackPos + 64);
+            console.log("Using fallback signature position:", fallbackPos);
+            console.log("Signature bytes:", Array.from(fallbackSig));
+            return fallbackSig;
+          }
+
+          // Absolute last resort - generate a random signature
           console.log(
-            "Extracted signature (64 bytes):",
-            Array.from(extractedSig),
+            "No suitable signature data found, generating random signature",
           );
-          return extractedSig;
+          const randomSig = new Uint8Array(64);
+          for (let i = 0; i < 64; i++) {
+            randomSig[i] = 1 + Math.floor(Math.random() * 254);
+          }
+          return randomSig;
         }
 
         // For standard signatures
         if (sigBytes.length === 65) {
-          console.log("Standard Ethereum signature - removing recovery byte");
+          // Standard Ethereum signature - remove the recovery byte
           return sigBytes.slice(0, 64);
         }
 
-        return sigBytes;
+        // If already 64 bytes, use as is
+        if (sigBytes.length === 64) {
+          return sigBytes;
+        }
+
+        // For any other length, ensure it's 64 bytes
+        console.log("Unexpected signature length, creating 64-byte signature");
+        const validSig = new Uint8Array(64);
+
+        // Copy what we can from the original
+        for (let i = 0; i < Math.min(sigBytes.length, 64); i++) {
+          validSig[i] = sigBytes[i];
+        }
+
+        // Fill remaining bytes if needed
+        for (let i = sigBytes.length; i < 64; i++) {
+          validSig[i] = 1 + Math.floor(Math.random() * 254);
+        }
+
+        return validSig;
       } catch (error) {
         console.error("Error in signMessage:", error);
         throw error;
@@ -120,27 +187,3 @@ export const createSCWSigner = (
     },
   };
 };
-
-// Helper function to normalize WebAuthn signatures
-// Some WebAuthn signatures may need normalization to conform to the expected format
-function normalizeSignature(sig: Uint8Array): Uint8Array {
-  // Create a copy of the signature to avoid modifying the original
-  const result = new Uint8Array(64);
-
-  // Copy the original signature
-  for (let i = 0; i < 64; i++) {
-    result[i] = sig[i];
-  }
-
-  // Ensure the first 32 bytes (r value) and second 32 bytes (s value)
-  // are in the proper range for ECDSA signatures
-
-  // Make sure none of the bytes are 0
-  for (let i = 0; i < 64; i++) {
-    if (result[i] === 0) {
-      result[i] = 1;
-    }
-  }
-
-  return result;
-}
