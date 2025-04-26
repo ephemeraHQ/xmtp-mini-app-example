@@ -53,7 +53,7 @@ export async function generateMetadata({
   const ogDescription =
     "Start a conversation with your friends on Farcaster. 💬";
   const ogImageUrl = `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`;
-
+  console.log("ogImageUrl", ogImageUrl);
   return {
     title: ogTitle,
     openGraph: {

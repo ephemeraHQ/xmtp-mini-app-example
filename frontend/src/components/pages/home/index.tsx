@@ -13,7 +13,7 @@ import { SafeAreaContainer } from "@/components/ui/safe-area-container";
 import { useFrame } from "@/context/frame-context";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
-import { createBrowserSigner } from "@/lib/utils";
+import { createSCWSigner } from "@/lib/utils";
 
 const HomeContent = dynamic(
   () => import("@/components/pages/home/home-content"),
@@ -51,12 +51,11 @@ export default function HomePage() {
   // Initialize XMTP client with wallet signer
   useEffect(() => {
     if (walletData?.account) {
-    
       void initialize({
         dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
         env: env.NEXT_PUBLIC_XMTP_ENV,
         loggingLevel,
-        signer: createBrowserSigner(walletData.account.address, walletData),
+        signer: createSCWSigner(walletData.account.address, walletData),
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
