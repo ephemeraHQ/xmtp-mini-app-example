@@ -23,6 +23,7 @@ export default function ConversationsPage({
   const [groupName, setGroupName] = useState("");
   const [groupConversation, setGroupConversation] =
     useState<Conversation | null>(null);
+  const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   useEffect(() => {
     if (conversations.length >= 0) {
@@ -69,11 +70,12 @@ export default function ConversationsPage({
       const getGroupId = async () => {
         const res = await fetch("/api/proxy/get-group-id");
         const data = await res.json();
-        return data.groupId;
+        return { groupId: data.groupId, isMember: data.isMember };
       };
 
-      const groupId = await getGroupId();
+      const { groupId, isMember } = await getGroupId();
       console.log("groupId", groupId);
+      console.log("isMember", isMember);
 
       const foundGroup = conversations.find((conv) => conv.id === groupId);
       if (foundGroup) {
@@ -83,6 +85,12 @@ export default function ConversationsPage({
           setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
           setGroupConversation(foundGroup);
         }
+      } else if (isMember && client && !hasAttemptedRefresh) {
+        // If user is a member but conversation is not loaded yet
+        // Refresh the conversation list to try to load it - but only once
+        setHasAttemptedRefresh(true);
+        const newConversations = await list(undefined, true);
+        setConversations(newConversations);
       }
     } catch (error) {
       console.error("Error fetching group ID:", error);
@@ -122,6 +130,8 @@ export default function ConversationsPage({
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
+      // Reset the flag when manually refreshing
+      setHasAttemptedRefresh(false);
       const newConversations = await list(undefined, true);
       setConversations(newConversations);
     } catch (error) {

@@ -52,9 +52,7 @@ export default function HomePage() {
   useEffect(() => {
     if (walletData?.account) {
       void initialize({
-        dbEncryptionKey: encryptionKey
-          ? hexToUint8Array(encryptionKey)
-          : undefined,
+        dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
         env: env.NEXT_PUBLIC_XMTP_ENV,
         loggingLevel,
         signer: createBrowserSigner(walletData.account.address, walletData),
