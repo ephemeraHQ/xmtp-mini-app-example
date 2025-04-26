@@ -1,11 +1,29 @@
-import { getRandomValues } from "node:crypto";
 import { IdentifierKind, type Signer } from "@xmtp/node-sdk";
 import { fromString, toString } from "uint8arrays";
 import { createWalletClient, http, toBytes } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
+import { z } from "zod";
+import "dotenv/config";
+import { getRandomValues } from "node:crypto";
 
-interface User {
+// Environment configuration
+export const envSchema = z.object({
+  PORT: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .default("3000"),
+  API_SECRET_KEY: z.string().min(1),
+  XMTP_PRIVATE_KEY: z.string().min(1),
+  XMTP_ENCRYPTION_KEY: z.string().optional(),
+  XMTP_ENV: z.enum(["dev", "local", "production"]).default("dev"),
+  XMTP_DEFAULT_CONVERSATION_ID: z.string().min(1),
+});
+
+export const env = envSchema.parse(process.env);
+
+// XMTP Utilities
+export interface User {
   key: `0x${string}`;
   account: ReturnType<typeof privateKeyToAccount>;
   wallet: ReturnType<typeof createWalletClient>;
@@ -43,23 +61,11 @@ export const createSigner = (key: string): Signer => {
   };
 };
 
-/**
- * Generate a random encryption key
- * @returns The encryption key
- */
 export const generateEncryptionKeyHex = () => {
-  /* Generate a random encryption key */
   const uint8Array = getRandomValues(new Uint8Array(32));
-  /* Convert the encryption key to a hex string */
   return toString(uint8Array, "hex");
 };
 
-/**
- * Get the encryption key from a hex string
- * @param hex - The hex string
- * @returns The encryption key
- */
 export const getEncryptionKeyFromHex = (hex: string) => {
-  /* Convert the hex string to an encryption key */
   return fromString(hex, "hex");
 };
