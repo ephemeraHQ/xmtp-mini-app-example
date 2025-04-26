@@ -39,14 +39,17 @@ export default function ConversationsPage({
       const timer = setTimeout(() => {
         handleFetchGroupId();
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [conversations, isGroupJoined, hasAttemptedRefresh]);
 
   // Add monitoring for conversations changes
   useEffect(() => {
-    console.log("Conversations updated in ConversationsPage:", conversations.length);
+    console.log(
+      "Conversations updated in ConversationsPage:",
+      conversations.length,
+    );
     if (conversations.length > 0) {
       console.log("First conversation ID:", conversations[0].id);
     }
@@ -98,9 +101,17 @@ export default function ConversationsPage({
       if (isRefreshing) {
         return;
       }
-      
+
+      // Make sure we have a client with an inboxId
+      if (!client || !client.inboxId) {
+        console.log("No client or inboxId available");
+        return;
+      }
+
       const getGroupId = async () => {
-        const res = await fetch("/api/proxy/get-group-id");
+        const res = await fetch(
+          `/api/proxy/get-group-id?inboxId=${client.inboxId}`,
+        );
         const data = await res.json();
         return { groupId: data.groupId, isMember: data.isMember };
       };
@@ -117,7 +128,7 @@ export default function ConversationsPage({
 
       const foundGroup = conversations.find((conv) => conv.id === groupId);
       console.log("Found group:", foundGroup ? foundGroup.id : "not found");
-      
+
       if (foundGroup) {
         await foundGroup?.sync();
         console.log("Group isActive:", (foundGroup as Group).isActive);
@@ -131,12 +142,17 @@ export default function ConversationsPage({
       } else if (isMember && client && !hasAttemptedRefresh) {
         // If user is a member but conversation is not loaded yet
         // Refresh the conversation list to try to load it - but only once
-        console.log("User is a member but conversation not found, refreshing (once)");
+        console.log(
+          "User is a member but conversation not found, refreshing (once)",
+        );
         setIsRefreshing(true);
         setHasAttemptedRefresh(true);
         try {
           const newConversations = await list(undefined, true);
-          console.log("After refresh, new conversations count:", newConversations.length);
+          console.log(
+            "After refresh, new conversations count:",
+            newConversations.length,
+          );
           setConversations(newConversations);
         } catch (error) {
           console.error("Error refreshing conversations:", error);
@@ -210,7 +226,10 @@ export default function ConversationsPage({
         {isGroupJoined && groupConversation ? (
           <button
             onClick={() => {
-              console.log("Enter button clicked, passing conversation:", groupConversation.id);
+              console.log(
+                "Enter button clicked, passing conversation:",
+                groupConversation.id,
+              );
               if (groupConversation && groupConversation.id) {
                 // Validate the conversation object before passing it
                 onSelectConversation(groupConversation);
@@ -229,7 +248,7 @@ export default function ConversationsPage({
             onClick={handleRefresh}
             className="px-6 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 transition-colors duration-200"
             disabled={isRefreshing}>
-            {isRefreshing ? "Loading group..." : "Reload group chat"}
+            {isRefreshing ? "Loading group..." : "Enter group"}
           </button>
         ) : (
           <button
@@ -277,4 +296,3 @@ export default function ConversationsPage({
     </div>
   );
 }
-
