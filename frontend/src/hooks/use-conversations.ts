@@ -27,7 +27,6 @@ export const useConversations = () => {
     try {
       await client.conversations.sync();
       const convos = await client.conversations.list(options);
-      console.log("convos", convos);
       return convos;
     } finally {
       setLoading(false);

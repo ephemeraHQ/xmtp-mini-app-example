@@ -28,7 +28,6 @@ export default function HomePage() {
   const { data: walletData } = useWalletClient();
   const { isConnected, address } = useAccount();
   const { connect } = useConnect();
-  const [encryptionKey] = useLocalStorage("XMTP_ENCRYPTION_KEY", "");
   const [loggingLevel] = useLocalStorage<ClientOptions["loggingLevel"]>(
     "XMTP_LOGGING_LEVEL",
     "off",
@@ -52,9 +51,7 @@ export default function HomePage() {
   useEffect(() => {
     if (walletData?.account) {
       void initialize({
-        dbEncryptionKey: encryptionKey
-          ? hexToUint8Array(encryptionKey)
-          : undefined,
+        dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
         env: env.NEXT_PUBLIC_XMTP_ENV,
         loggingLevel,
         signer: createBrowserSigner(walletData.account.address, walletData),

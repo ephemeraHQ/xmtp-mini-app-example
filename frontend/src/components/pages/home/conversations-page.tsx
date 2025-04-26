@@ -74,10 +74,11 @@ export default function ConversationsPage({
 
       const groupId = await getGroupId();
       console.log("groupId", groupId);
-
       const foundGroup = conversations.find((conv) => conv.id === groupId);
+      console.log("foundGroup", foundGroup);
       if (foundGroup) {
         await foundGroup?.sync();
+        console.log("foundGroup", foundGroup);
         if ((foundGroup as Group).isActive) {
           setIsGroupJoined(true);
           setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
@@ -142,12 +143,22 @@ export default function ConversationsPage({
           {client?.inboxId?.slice(-4)}
         </p>
 
-        {isGroupJoined && groupConversation ? (
-          <button
-            onClick={() => onSelectConversation(groupConversation)}
-            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
-            Enter {groupName}
-          </button>
+        {isGroupJoined ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-green-500">Already in group chat</p>
+            <button
+              onClick={() => onSelectConversation(groupConversation!)}
+              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
+              Enter {groupName}
+            </button>
+            <Button
+              variant="link"
+              onClick={handleLeaveGroup}
+              disabled={joining}
+              className="text-xs text-red-400">
+              {joining ? "Leaving..." : "Leave group"}
+            </Button>
+          </div>
         ) : (
           <button
             onClick={handleAddMeToDefaultConversation}
@@ -180,16 +191,6 @@ export default function ConversationsPage({
           className="text-xs text-gray-400">
           {isRefreshing ? "Refreshing..." : "Refresh"}
         </Button>
-
-        {isGroupJoined && (
-          <Button
-            variant="link"
-            onClick={handleLeaveGroup}
-            disabled={joining}
-            className="text-xs text-red-400">
-            {joining ? "Leaving..." : "Leave group"}
-          </Button>
-        )}
       </div>
     </div>
   );
