@@ -1,10 +1,9 @@
 import { Conversation, Group } from "@xmtp/browser-sdk";
 import ky from "ky";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/shadcn/button";
 import { useXMTP } from "@/context/xmtp-context";
 import { useConversations } from "@/hooks/use-conversations";
-import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 interface ConversationsPageProps {
@@ -25,77 +24,7 @@ export default function ConversationsPage({
     useState<Conversation | null>(null);
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
-  // Only fetch group ID when component mounts or client changes
-  useEffect(() => {
-    if (client) {
-      handleFetchGroupId();
-    }
-  }, [client]);
-
-  // Check for group when conversations change, with debounce
-  useEffect(() => {
-    if (conversations.length > 0 && !isGroupJoined && !hasAttemptedRefresh) {
-      // Debounce the check to avoid multiple rapid checks
-      const timer = setTimeout(() => {
-        handleFetchGroupId();
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [conversations, isGroupJoined, hasAttemptedRefresh]);
-
-  // Add monitoring for conversations changes
-  useEffect(() => {
-    console.log(
-      "Conversations updated in ConversationsPage:",
-      conversations.length,
-    );
-    if (conversations.length > 0) {
-      console.log("First conversation ID:", conversations[0].id);
-    }
-  }, [conversations]);
-
-  // Add monitoring for isGroupJoined and groupConversation changes
-  useEffect(() => {
-    console.log("isGroupJoined changed:", isGroupJoined);
-    console.log("groupConversation:", groupConversation);
-  }, [isGroupJoined, groupConversation]);
-
-  const handleLeaveGroup = async () => {
-    if (!client) return;
-
-    try {
-      setJoining(true);
-      // call nextjs backend to set header without exposing the API_SECRET_KEY
-      const data = await ky
-        .post<{ success: boolean; message: string }>(
-          `/api/proxy/remove-inbox`,
-          {
-            json: {
-              inboxId: client.inboxId,
-            },
-          },
-        )
-        .json();
-      setJoining(false);
-
-      if (data.success) {
-        const newConversations = await list(undefined, true);
-        setConversations(newConversations);
-        setIsGroupJoined(false);
-        setGroupConversation(null);
-      } else {
-        console.warn("Failed to remove me from the default conversation", data);
-        setErrorMessage(data.message);
-      }
-    } catch (error) {
-      console.error("Error removing me from the default conversation", error);
-      setErrorMessage("Failed to remove me from the default conversation");
-      setJoining(false);
-    }
-  };
-
-  const handleFetchGroupId = async () => {
+  const handleFetchGroupId = useCallback(async () => {
     try {
       // If we're already refreshing, don't trigger another refresh
       if (isRefreshing) {
@@ -167,6 +96,83 @@ export default function ConversationsPage({
     } catch (error) {
       console.error("Error fetching group ID:", error);
       setErrorMessage("Failed to fetch group ID");
+    }
+  }, [
+    client,
+    conversations,
+    hasAttemptedRefresh,
+    isRefreshing,
+    list,
+    setConversations,
+  ]);
+
+  // Only fetch group ID when component mounts or client changes
+  useEffect(() => {
+    if (client) {
+      handleFetchGroupId();
+    }
+  }, [client, handleFetchGroupId]);
+
+  // Check for group when conversations change, with debounce
+  useEffect(() => {
+    if (conversations.length > 0 && !isGroupJoined && !hasAttemptedRefresh) {
+      // Debounce the check to avoid multiple rapid checks
+      const timer = setTimeout(() => {
+        handleFetchGroupId();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [conversations, isGroupJoined, hasAttemptedRefresh, handleFetchGroupId]);
+
+  // Add monitoring for conversations changes
+  useEffect(() => {
+    console.log(
+      "Conversations updated in ConversationsPage:",
+      conversations.length,
+    );
+    if (conversations.length > 0) {
+      console.log("First conversation ID:", conversations[0].id);
+    }
+  }, [conversations]);
+
+  // Add monitoring for isGroupJoined and groupConversation changes
+  useEffect(() => {
+    console.log("isGroupJoined changed:", isGroupJoined);
+    console.log("groupConversation:", groupConversation);
+  }, [isGroupJoined, groupConversation]);
+
+  const handleLeaveGroup = async () => {
+    if (!client) return;
+
+    try {
+      setJoining(true);
+      // call nextjs backend to set header without exposing the API_SECRET_KEY
+      const data = await ky
+        .post<{ success: boolean; message: string }>(
+          `/api/proxy/remove-inbox`,
+          {
+            json: {
+              inboxId: client.inboxId,
+            },
+          },
+        )
+        .json();
+      setJoining(false);
+
+      if (data.success) {
+        const newConversations = await list(undefined, true);
+        setConversations(newConversations);
+        setIsGroupJoined(false);
+        setGroupConversation(null);
+      } else {
+        console.warn("Failed to remove me from the default conversation", data);
+        setErrorMessage(data.message);
+      }
+    } catch (error) {
+      console.error("Error removing me from the default conversation", error);
+      setErrorMessage("Failed to remove me from the default conversation");
+      setJoining(false);
     }
   };
 

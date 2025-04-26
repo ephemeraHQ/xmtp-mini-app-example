@@ -5,7 +5,9 @@ import { env } from "@/lib/env";
 import "@/app/no-cache";
 
 // Force dynamic rendering with no caching
-export const dynamicConfig = "force-dynamic";
+export const dynamicParams = false;
+export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 const HomePage = dynamic(() => import("@/components/pages/home"), {
