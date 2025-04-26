@@ -1,0 +1,14 @@
+{
+  "name": "xmtp-mini-app",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "version": "1.0.0",
+  "description": "XMTP Mini App",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "yarn@4.6.0"
+} 
