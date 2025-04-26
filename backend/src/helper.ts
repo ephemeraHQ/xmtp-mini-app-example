@@ -149,15 +149,17 @@ export const appendToEnv = (key: string, value: string): void => {
 
     // Escape regex special chars
     const escapedKey = key.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    // Escape double quotes in value
+    const escapedValue = value.replace(/"/g, '\\"');
 
     // Update or add the key
     if (envContent.includes(`${key}=`)) {
       envContent = envContent.replace(
         new RegExp(`${escapedKey}=.*(\\r?\\n|$)`, "g"),
-        `${key}="${value}"$1`,
+        `${key}="${escapedValue}"$1`,
       );
     } else {
-      envContent += `\n${key}="${value}"\n`;
+      envContent += `\n${key}="${escapedValue}"\n`;
     }
 
     fs.writeFileSync(envPath, envContent);
