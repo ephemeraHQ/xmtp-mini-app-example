@@ -246,18 +246,11 @@ app.get(
         console.log("🟡 Conversation synced");
 
         const groupMembers = await (conversation as Group).members();
-        console.log("📋 Group members count:", groupMembers.length);
-        console.log(
-          "📋 Group members details:",
-          groupMembers.map((member) => ({
-            inboxId: member.inboxId,
-            permissionLevel: member.permissionLevel,
-          })),
-        );
 
         const isMember = groupMembers.some(
           (member) => member.inboxId === xmtpClient.inboxId,
         );
+
         console.log("🟣 isMember check complete:", isMember);
         console.log("🟣 Client inbox ID:", xmtpClient.inboxId);
 
