@@ -22,7 +22,7 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-        //        crypto: false,
+        crypto: false,
       };
 
       config.module.rules.push({
@@ -54,7 +54,8 @@ const nextConfig = {
           {
             key: "Surrogate-Control",
             value: "no-store",
-          }, // Add the XMTP browser SDK required headers
+          },
+          // These headers are critical for proper storage access
           {
             key: "Cross-Origin-Embedder-Policy",
             value: "require-corp",
@@ -62,6 +63,11 @@ const nextConfig = {
           {
             key: "Cross-Origin-Opener-Policy",
             value: "same-origin",
+          },
+          // Add this to help with localStorage persistence
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "same-site",
           },
         ],
       },
