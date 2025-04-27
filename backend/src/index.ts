@@ -53,6 +53,7 @@ const initializeXmtpClient = async () => {
     conversation = await xmtpClient.conversations.newGroup(defaultInboxes);
     console.log("New group created:", conversation.id);
     GROUP_ID = conversation.id;
+    await (conversation as Group).updateName("XMTP Debugger");
     appendToEnv("GROUP_ID", GROUP_ID);
   }
 
