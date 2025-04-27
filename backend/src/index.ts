@@ -230,8 +230,6 @@ app.get(
   "/api/xmtp/get-group-id",
   validateApiSecret,
   (req: Request, res: Response) => {
-    console.log("🔴🔴🔴 GET-GROUP-ID ROUTE HANDLER STARTED 🔴🔴🔴");
-    console.log("Request headers:", req.headers);
     void (async () => {
       try {
         console.log("🔵 Inside get-group-id async block");
