@@ -1,13 +1,15 @@
+"use client";
+
 import { Header } from "@/components/Header";
 import { SafeAreaContainer } from "@/components/SafeAreaContainer";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { useXMTP } from "@/context/xmtp-context";
 import { useAccount } from "wagmi";
-import { ConnectionInfo } from ".";
-import { WalletConnection } from ".";
-import { GroupManagement } from ".";
-import { BackendInfo } from ".";
-import { LogoutButton } from ".";
+import { ConnectionInfo } from "../examples";
+import { WalletConnection } from "../examples";
+import { GroupManagement } from "../examples";
+import { BackendInfo } from "../examples";
+import { LogoutButton } from "../examples";
 
 export default function ExamplePage() {
   const { client, initializing } = useXMTP();

@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { OG_IMAGE_SIZE } from "@/lib/constants";
 import { env } from "@/lib/env";
 import "@/app/no-cache";
-import Page from "@/pages/Page";
+import ExamplePage from "@/pages/ExamplePage";
 
 // Force dynamic rendering with no caching
 export const dynamicParams = false;
@@ -47,5 +47,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Home() {
-  return <Page />;
+  return <ExamplePage />;
 }

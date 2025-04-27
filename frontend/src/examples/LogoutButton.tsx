@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { useDisconnect } from "wagmi";
 import { Button } from "@/components/Button";

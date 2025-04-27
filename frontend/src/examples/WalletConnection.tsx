@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useState } from "react";
 import { hexToUint8Array } from "uint8array-extras";
 import { injected, useConnect, useWalletClient } from "wagmi";

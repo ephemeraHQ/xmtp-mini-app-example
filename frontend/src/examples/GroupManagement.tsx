@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useState } from "react";
 import { Group } from "@xmtp/browser-sdk";
 import { Button } from "@/components/Button";
