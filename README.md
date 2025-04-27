@@ -101,7 +101,7 @@ For isolated debugging, use a local XMTP network:
 XMTP_ENV=local
 ```
 
-## Additional Debugging Resources
+## Additional resources
 
 - [xmtp.chat](https://xmtp.chat) - Web best practices with XMTP `browser-sdk`
 - [Farcaster Frames Documentation](https://docs.farcaster.xyz/reference/frames/spec)
