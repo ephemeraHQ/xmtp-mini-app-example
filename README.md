@@ -2,24 +2,18 @@
 
 This repository contains examples of mini-apps built with the [XMTP](https://docs.xmtp.org/) network and Farcaster Frames.
 
-## Why XMTP for Mini-Apps?
+## Why XMTP?
 
-- **End-to-end encryption**: All data is encrypted in transit and at rest, ensuring user privacy and security.
+- **End-to-end & compliant**: Data is encrypted in transit and at rest, meeting strict security and regulatory standards.
 - **Open-source & trustless**: Built on top of the [MLS](https://messaginglayersecurity.rocks/) protocol, it replaces trust in centralized certificate authorities with cryptographic proofs.
 - **Privacy & metadata protection**: Offers anonymous usage through SDKs and pseudonymous usage with nodes tracking minimum metadata.
 - **Decentralized**: Operates on a peer-to-peer network, eliminating single points of failure and ensuring continued operation even if some nodes go offline.
-- **Group messaging**: Enables rich group chat experiences between users through MLS group chats.
+- **Multi-agent**: Allows confidential communication between multiple agents and humans through MLS group chats.
+
 
 ## Getting Started
 
 This repository contains a full-stack mini-app example with both frontend and backend components.
-
-### Requirements
-
-- Node.js v20 or higher
-- Yarn v4 or higher
-- Docker (optional, for local network)
-- A Farcaster account (for Frames integration)
 
 ### Repository Structure
 
@@ -27,6 +21,13 @@ The repository is structured as follows:
 
 - [frontend](./frontend): The frontend is a Next.js application with Farcaster Frames integration.
 - [backend](./backend): The backend is a Node.js application that handles a group chat for the mini-app.
+
+### Requirements
+
+- Node.js v20 or higher
+- Yarn v4 or higher
+- Docker (optional, for local network)
+- A Farcaster account (for Frames integration)
 
 ### Running the mini-app
 
@@ -41,6 +42,15 @@ XMTP_PRIVATE_KEY= # Private key of your XMTP account
 XMTP_ENV=dev # XMTP environment (dev/production)
 NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 ```
+
+## Examples
+
+- [Wallet Connection](./frontend/src/examples/WalletConnection.tsx)
+- [Connection Info](./frontend/src/examples/ConnectionInfo.tsx)
+- [Group Management](./frontend/src/examples/GroupManagement.tsx) 
+- [Group Chat](./frontend/src/examples/GroupChat.tsx)
+- [Backend Info](./frontend/src/examples/BackendInfo.tsx)
+
 
 ## Deployment
 
