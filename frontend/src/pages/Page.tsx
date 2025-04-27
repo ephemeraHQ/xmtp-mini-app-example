@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { SafeAreaContainer } from "@/components/SafeAreaContainer";
 import { FullPageLoader } from "@/components/FullPageLoader";
@@ -14,51 +14,41 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default function ExamplePage() {
-  const { client, initializing, disconnect, groupConversation } = useXMTP();
+  const { client, initializing, disconnect } = useXMTP();
   const [isConnected, setIsConnected] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
 
-  // Debug log for groupConversation
-  useEffect(() => {
-    console.log("Page: groupConversation state:", groupConversation);
-  }, [groupConversation]);
-
-
-  // Only run client-side code after mount
+  // Mark as mounted on client-side
   useEffect(() => {
     setMounted(true);
     
-    // Add a safety timeout to prevent UI from being stuck in loading state
+    // Add a safety timeout
     const timeoutId = setTimeout(() => {
       setShowLoader(false);
-    }, 20000); // 20 seconds max loading time
+    }, 5000); // Reduced to 5 seconds for better UX
     
     return () => clearTimeout(timeoutId);
   }, []);
   
-  // Update loader state based on initializing state
+  // Update loader state based on initializing
   useEffect(() => {
-    if (!initializing) {
-      setShowLoader(false);
-    } else {
-      setShowLoader(true);
-    }
+    setShowLoader(initializing);
   }, [initializing]);
 
-  // Handle logout through the header
+  // Handle logout
   const handleLogout = () => {
     if (client) {
       disconnect();
-      window.location.href = window.location.origin; // Redirect to home after logout
+      window.location.href = "/";
     }
   };
 
-  // If not mounted yet, render loading
+  // Show loader while not mounted
   if (!mounted) {
     return (
       <SafeAreaContainer>
-        <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
+        <div className="flex flex-col w-full max-w-md mx-auto h-screen bg-black">
           <FullPageLoader />
         </div>
       </SafeAreaContainer>
@@ -67,31 +57,24 @@ export default function ExamplePage() {
 
   return (
     <SafeAreaContainer>
-      <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
+      <div className="flex flex-col w-full max-w-md mx-auto h-screen bg-black">
         <Header 
           isConnected={isConnected || !!client} 
           onLogout={isConnected || !!client ? handleLogout : undefined} 
         />
+        
         {showLoader ? (
           <FullPageLoader />
         ) : (
           <div className="flex flex-col gap-4 px-4 py-4 h-full overflow-auto">
-            {/* Connection Info Example */}
             <ConnectionInfo onConnectionChange={setIsConnected} />
             
-            {/* Wallet Connection Example (show only when not connected) */}
-            {!client && (
-              <WalletConnection />
-            )}
+            {!client && <WalletConnection />}
             
-            
-            {/* Group Management (show when connected) */}
-            {client && (
-              <GroupChat />
-            )}
+            {client && <GroupChat />}
           </div>
         )}
       </div>
     </SafeAreaContainer>
   );
-} 
+}
