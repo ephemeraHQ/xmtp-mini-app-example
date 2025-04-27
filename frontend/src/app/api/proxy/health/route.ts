@@ -1,39 +1,29 @@
 import ky from "ky";
 import { NextResponse } from "next/server";
-import { env } from "@/lib/env";
-
+import { env } from "@/lib/env";    
 
 export async function GET() {
   try {
-    // Check backend health
-    let backendStatus = "unknown";
+    // Test if we can actually connect to the backend
+    const response = await ky.get(`${env.BACKEND_URL}/health`, { 
+      timeout: 3000,
+      retry: 0
+    }).json();
     
-    try {
-      const response = await ky.get(`${env.BACKEND_URL}/api/xmtp/health`);
-      
-      if (response.ok) {
-        backendStatus = "online";
-      } else {
-        backendStatus = "offline";
-      }
-    } catch (error) {
-      console.error("Backend health check failed");
-      backendStatus = "offline";
-    }
-    
+    // Only return online if we got a proper response from the backend
     return NextResponse.json({ 
       status: "ok",
       timestamp: new Date().toISOString(),
-      backend: backendStatus
+      backend: "online"
     });
   } catch (error) {
-    console.error("Health check error");
-    return NextResponse.json(
-      { 
-        status: "error",
-        message: (error as Error).message 
-      },
-      { status: 500 }
-    );
+    // If we can't connect to the backend, return offline status
+    console.error("Backend health check failed:", error instanceof Error ? error.message : String(error));
+    
+    return NextResponse.json({ 
+      status: "error",
+      timestamp: new Date().toISOString(),
+      backend: "offline"
+    });
   }
 } 

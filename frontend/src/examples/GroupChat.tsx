@@ -18,6 +18,7 @@ export default function GroupManagement() {
   const [groupMemberCount, setGroupMemberCount] = useState(0);
   const [groupMessageCount, setGroupMessageCount] = useState(0);
   const [latestMessage, setLatestMessage] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState<string | null>(null);
 
   // Message sending state
   const [message, setMessage] = useState("");
@@ -45,10 +46,15 @@ export default function GroupManagement() {
       }
       
       const data = await response.json();
+      console.log("API response:", data);
       
       const groupId = data.groupId;
       const isMember = data.isMember;
+      const backendMemberCount = data.memberCount || 0;
+      const backendMessageCount = data.messageCount || 0;
+      const backendGroupName = data.groupName;
       
+      console.log("Group ID:", groupId, "Is Member:", isMember);
       setIsGroupJoined(isMember);
 
       if (!isMember || !groupId) {
@@ -56,16 +62,35 @@ export default function GroupManagement() {
         setGroupMemberCount(0);
         setGroupMessageCount(0);
         setLatestMessage(null);
+        setGroupName(null);
         setIsRefreshing(false);
         return;
       }
       
-      // Find the group in existing conversations
-      let group = conversations.find(conv => conv.id === groupId) as Group | undefined;
-
+      // Set initial data from backend response
+      setGroupMemberCount(backendMemberCount);
+      setGroupMessageCount(backendMessageCount);
+      if (backendGroupName) {
+        setGroupName(backendGroupName);
+      }
       
+      if (data.lastMessage) {
+        setLatestMessage(String(data.lastMessage.content));
+      }
+      
+      // Sync conversations to make sure we have the latest data
+      await client.conversations.sync();
+      const newConversations = await client.conversations.list();
+      setConversations(newConversations);
+      
+      // Find the group in existing conversations
+      let group = newConversations.find(conv => conv.id === groupId) as Group | undefined;
+      
+      console.log("Found group:", group?.id, "Is Active:", group?.isActive);
+
       if (group && group.isActive) {
         setLocalGroupConversation(group);
+        setGroupName(group.name || ""); 
         
         // Get group members
         const members = await group.members();
@@ -85,9 +110,24 @@ export default function GroupManagement() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [client, conversations, isRefreshing, setConversations]);
+  }, [client, conversations]);
 
-  
+  // Initial data fetch on mount
+  useEffect(() => {
+    if (client && client.inboxId) {
+      fetchGroupData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch when client changes (e.g., new login)
+  useEffect(() => {
+    if (client && client.inboxId) {
+      fetchGroupData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
+
   // Join group handler
   const handleJoinGroup = async () => {
     if (!client) return;
@@ -151,6 +191,7 @@ export default function GroupManagement() {
         setGroupMemberCount(0);
         setGroupMessageCount(0);
         setLatestMessage(null);
+        setGroupName(null);
       }
     } catch (error) {
       console.error("Error leaving group:", error);
@@ -234,22 +275,16 @@ export default function GroupManagement() {
             )}
           </p>
          
-          {isGroupJoined && groupConversation && (
-            <>
-              <p><span className="text-gray-500">Group Name:</span> {groupConversation.name || "XMTP Group"}</p>
-              <p><span className="text-gray-500">Group ID:</span> {groupConversation.id.slice(0, 8)}...{groupConversation.id.slice(-8)}</p>
-              <p><span className="text-gray-500">Members:</span> {groupMemberCount}</p>
-              <p><span className="text-gray-500">Messages:</span> {groupMessageCount}</p>
-              {latestMessage && (
-                <p className="mt-1">
-                  <span className="text-gray-500">Latest Message:</span>{" "}
-                  <span className="text-gray-300 italic">
-                    {latestMessage.length > 50 ? `${latestMessage.substring(0, 50)}...` : latestMessage}
-                  </span>
-                </p>
-              )}
-            </>
-          )}
+          <p><span className="text-gray-500">Group Name:</span> {groupName || "No group"}</p>
+          <p><span className="text-gray-500">Group ID:</span> {groupConversation?.id ? `${groupConversation.id.slice(0, 8)}...${groupConversation.id.slice(-8)}` : "No ID"}</p>
+          <p><span className="text-gray-500">Members:</span> {groupMemberCount || 0}</p>
+          <p><span className="text-gray-500">Messages:</span> {groupMessageCount || 0}</p>
+          <p className="mt-1">
+            <span className="text-gray-500">Latest Message:</span>{" "}
+            <span className="text-gray-300 italic">
+              {latestMessage ? (latestMessage.length > 50 ? `${latestMessage.substring(0, 50)}...` : latestMessage) : "No messages"}
+            </span>
+          </p>
         </div>
         <Button
           className="w-full mt-3"
@@ -266,7 +301,7 @@ export default function GroupManagement() {
           <div className="flex justify-between items-center">
             <h2 className="text-white text-sm font-medium">Group Chat</h2>
             <span className="text-gray-400 text-xs">
-              {groupConversation.name || "XMTP Group"}
+              {groupName || "XMTP Group"}
             </span>
           </div>
           

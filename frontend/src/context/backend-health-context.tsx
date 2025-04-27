@@ -28,17 +28,21 @@ export const BackendHealthProvider: React.FC<BackendHealthProviderProps> = ({
   pollingInterval = 30000 // Default to 30 seconds
 }) => {
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("unknown");
-
+  
   const checkBackendHealth = async (): Promise<boolean> => {
     try {
       const response = await fetch('/api/proxy/health');
-      if (response.ok) {
-        const data = await response.json();
-        setBackendStatus(data.backend);
-        return data.backend === "online";
+      
+      // Make sure we got a proper response
+      if (!response.ok) {
+        setBackendStatus("offline");
+        return false;
       }
-      setBackendStatus("offline");
-      return false;
+      
+      const data = await response.json();
+      const isOnline = data.backend === "online";
+      setBackendStatus(isOnline ? "online" : "offline");
+      return isOnline;
     } catch (error) {
       setBackendStatus("offline");
       return false;
