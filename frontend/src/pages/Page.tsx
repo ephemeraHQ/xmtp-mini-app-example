@@ -248,6 +248,15 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
           await client.conversations.sync();
           const convos = await client.conversations.list();
           console.log("Loaded conversations:", convos.length);
+          
+          // Debug log the conversation objects
+          convos.forEach((conv, i) => {
+            if (i < 5) { // Limit to first 5 to prevent log spam
+              console.log(`Conversation ${i}:`, conv);
+              console.log(`Conversation ${i} toString:`, String(conv));
+            }
+          });
+          
           setConversations(convos);
         } catch (error) {
           console.error("Error loading conversations:", error);
@@ -312,70 +321,138 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
         const data = await res.json();
         console.log("Group data received:", data);
         
-        // Store the backend info for display
-        setBackendInfo(data);
+        // Validate the data before setting it
+        if (data && typeof data === 'object') {
+          // Check if it has the expected properties and not an update object
+          if (
+            !('initiatedByInboxId' in data) &&
+            !('addedInboxes' in data) &&
+            !('removedInboxes' in data) &&
+            !('metadataFieldChanges' in data)
+          ) {
+            // Store the backend info for display
+            setBackendInfo(data);
+          } else {
+            console.warn("Received unexpected data format - appears to be an update object", data);
+            // Do not set backendInfo if it's an update object
+          }
+        }
         
-        return { groupId: data.groupId, isMember: data.isMember };
+        return { 
+          groupId: data && typeof data === 'object' && typeof data.groupId === 'string' ? data.groupId : null, 
+          isMember: data && typeof data === 'object' && typeof data.isMember === 'boolean' ? data.isMember : false 
+        };
       };
 
       const { groupId, isMember } = await getGroupId();
       setIsGroupJoined(isMember);
       console.log(`Group membership status: ${isMember ? "Member" : "Not a member"}, Group ID: ${groupId || "none"}`);
 
-      // First try to find the group in existing conversations
-      let foundGroup = conversations.find(
-        (conv) => conv.id === groupId,
-      ) as Group | undefined;
-
-      if (foundGroup) {
-        console.log("Found group in existing conversations:", foundGroup.id);
-        // Make sure the group data is refreshed
-        await foundGroup.sync();
-        if (foundGroup.isActive) {
-          setGroupConversation(foundGroup);
-          
-          // Fetch members and messages
-          const members = await foundGroup.members();
-          setGroupMemberCount(members.length);
-          
-          const messages = await foundGroup.messages();
-          setGroupMessageCount(messages.length);
-        }
-      } else if (isMember && client && groupId) {
-        console.log("Not found in conversations but is a member, refreshing...");
-        // If we're a member but don't have the conversation locally, 
-        // refresh the conversation list
-        try {
-          await client.conversations.sync();
-          const newConversations = await client.conversations.list();
-          setConversations(newConversations);
-          
-          // Try to find the group again after refresh
-          foundGroup = newConversations.find(
-            (conv) => conv.id === groupId,
-          ) as Group | undefined;
-          
-          if (foundGroup) {
-            console.log("Found group after refresh:", foundGroup.id);
-            setGroupConversation(foundGroup);
-            
-            // Fetch members and messages
-            const members = await foundGroup.members();
-            setGroupMemberCount(members.length);
-            
-            const messages = await foundGroup.messages();
-            setGroupMessageCount(messages.length);
-          }
-        } catch (error) {
-          console.error("Error refreshing conversations:", error);
-          throw new Error("Failed to refresh conversations");
-        }
-      } else if (!isMember) {
-        console.log("Not a member of the group, clearing group data");
-        // Make sure we clear group data if we're not a member
+      if (!isMember || !groupId) {
+        console.log("Not a member or no group ID, clearing group data");
         setGroupConversation(null);
         setGroupMemberCount(0);
         setGroupMessageCount(0);
+        setIsRefreshing(false);
+        setHasAttemptedRefresh(true);
+        return;
+      }
+      
+      // First try to find the group in existing conversations
+      try {
+        // Filter conversations to exclude update objects
+        const validConversations = conversations.filter(conv => {
+          return typeof conv === 'object' && 
+            conv !== null && 
+            typeof conv.id === 'string' &&
+            !('initiatedByInboxId' in conv) &&
+            !('addedInboxes' in conv) &&
+            !('removedInboxes' in conv) &&
+            !('metadataFieldChanges' in conv);
+        });
+        
+        // Find the group in the valid conversations
+        let foundGroup = validConversations.find(
+          (conv) => conv.id === groupId,
+        ) as Group | undefined;
+
+        if (foundGroup) {
+          console.log("Found group in existing conversations:", foundGroup.id);
+          // Make sure the group data is refreshed
+          await foundGroup.sync();
+          if (foundGroup.isActive) {
+            setGroupConversation(foundGroup);
+            
+            try {
+              // Fetch members and messages
+              const members = await foundGroup.members();
+              setGroupMemberCount(members.length);
+              
+              const messages = await foundGroup.messages();
+              setGroupMessageCount(messages.length);
+            } catch (contentError) {
+              console.error("Error fetching group content:", contentError);
+            }
+          }
+        } else if (isMember && client && groupId) {
+          console.log("Not found in conversations but is a member, refreshing...");
+          // If we're a member but don't have the conversation locally, 
+          // refresh the conversation list
+          try {
+            await client.conversations.sync();
+            const newConversations = await client.conversations.list();
+            
+            // Filter the refreshed conversations
+            const validNewConversations = newConversations.filter(conv => {
+              return typeof conv === 'object' && 
+                conv !== null && 
+                typeof conv.id === 'string' &&
+                !('initiatedByInboxId' in conv) &&
+                !('addedInboxes' in conv) &&
+                !('removedInboxes' in conv) &&
+                !('metadataFieldChanges' in conv);
+            });
+            
+            setConversations(validNewConversations);
+            
+            // Try to find the group again after refresh
+            foundGroup = validNewConversations.find(
+              (conv) => conv.id === groupId,
+            ) as Group | undefined;
+            
+            if (foundGroup) {
+              console.log("Found group after refresh:", foundGroup.id);
+              
+              // Verify the group is actually a Group object with expected properties
+              if (typeof foundGroup.id === 'string' && typeof foundGroup.isActive !== 'undefined') {
+                setGroupConversation(foundGroup);
+                
+                try {
+                  // Fetch members and messages
+                  const members = await foundGroup.members();
+                  setGroupMemberCount(members.length);
+                  
+                  const messages = await foundGroup.messages();
+                  setGroupMessageCount(messages.length);
+                } catch (contentError) {
+                  console.error("Error fetching group content after refresh:", contentError);
+                }
+              } else {
+                console.error("Found item is not a valid Group object:", foundGroup);
+                setGroupConversation(null);
+              }
+            } else {
+              console.log("Group not found after refresh");
+              setGroupConversation(null);
+            }
+          } catch (error) {
+            console.error("Error refreshing conversations:", error);
+            throw new Error("Failed to refresh conversations");
+          }
+        }
+      } catch (groupError) {
+        console.error("Error processing group:", groupError);
+        setGroupConversation(null);
       }
     } catch (error) {
       console.error("Error fetching group ID:", error);
@@ -480,13 +557,49 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
       }
       
       const data = await response.json();
+      console.log("Join group response:", data);
 
       if (data.success) {
-        // Successfully joined the group - refresh conversations and fetch group data
-        await client.conversations.sync();
-        const newConversations = await client.conversations.list();
-        setConversations(newConversations);
-        await handleFetchGroupId();
+        try {
+          // Clear any potential outdated state immediately
+          setGroupConversation(null);
+          
+          // Add a delay before refreshing to allow XMTP network updates to propagate
+          console.log("Successfully joined group. Waiting before refreshing...");
+          
+          setTimeout(async () => {
+            try {
+              // Successfully joined the group - refresh conversations and fetch group data
+              await client.conversations.sync();
+              const newConversations = await client.conversations.list();
+              console.log("After joining: updated conversations list", newConversations.length);
+              
+              // Filter out any update objects that might have been returned
+              const validConversations = newConversations.filter(conv => {
+                // Check if conv is a valid conversation with expected properties
+                return typeof conv === 'object' && 
+                  conv !== null && 
+                  typeof conv.id === 'string' &&
+                  !('initiatedByInboxId' in conv) &&
+                  !('addedInboxes' in conv) &&
+                  !('removedInboxes' in conv) &&
+                  !('metadataFieldChanges' in conv);
+              });
+              
+              setConversations(validConversations);
+              
+              // Wait a bit more before fetching group data
+              setTimeout(async () => {
+                await handleFetchGroupId();
+              }, 1000);
+            } catch (syncError) {
+              console.error("Error syncing after join:", syncError);
+            }
+          }, 2000);
+        } catch (syncError) {
+          console.error("Error syncing after join:", syncError);
+          throw new Error("Failed to sync conversations after joining");
+        }
       } else {
         console.warn("Failed to join group", data);
         throw new Error(data.message || "Failed to join group");
@@ -578,7 +691,10 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
   return (
     <SafeAreaContainer insets={insets}>
       <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
-        <Header isConnected={isConnected} onLogout={isConnected ? () => void handleLogout() : undefined} />
+        <Header 
+          isConnected={isConnected || (!!client && connectionType === "Ephemeral Wallet")} 
+          onLogout={isConnected || (!!client && connectionType === "Ephemeral Wallet") ? () => void handleLogout() : undefined} 
+        />
         {initializing ? (
           <FullPageLoader />
         ) : (
@@ -603,9 +719,9 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
                 <p><span className="text-gray-500">Type:</span> {connectionType || "Not connected"}</p>
                 <p><span className="text-gray-500">Address:</span> {
                   connectionType === "Ephemeral Wallet" && ephemeralAddress 
-                    ? `${ephemeralAddress.slice(0, 6)}...${ephemeralAddress.slice(-4)}` 
+                    ? `${ephemeralAddress}` 
                     : address 
-                      ? `${address.slice(0, 6)}...${address.slice(-4)}` 
+                      ? `${address}` 
                       : "None"
                 }</p>
                 {client && <p><span className="text-gray-500">XMTP:</span> <span className="text-green-500">Connected</span></p>}
@@ -665,7 +781,6 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
                   <div className="flex justify-between items-center">
                     <h2 className="text-white text-sm font-medium">Group Status</h2>
                     <div className="flex items-center gap-2">
-                     
                       <Button
                         size="sm"
                         variant="outline" 
@@ -693,11 +808,19 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
                     </p>
                     {isGroupJoined ? (
                       <>
-                        <p><span className="text-gray-500">Group Name:</span> {groupConversation?.name || "XMTP Mini app"}</p>
-                        {groupConversation && (
+                        <p><span className="text-gray-500">Group Name:</span> {
+                          groupConversation && typeof groupConversation === 'object' && 'name' in groupConversation 
+                            ? (typeof groupConversation.name === 'string' ? groupConversation.name : "XMTP Mini app") 
+                            : "XMTP Mini app"
+                        }</p>
+                        {groupConversation && typeof groupConversation === 'object' && 'id' in groupConversation && typeof groupConversation.id === 'string' && (
                           <>
                             <p><span className="text-gray-500">Group ID:</span> {groupConversation.id.slice(0, 8)}...{groupConversation.id.slice(-8)}</p>
-                            <p><span className="text-gray-500">Active:</span> {groupConversation.isActive ? "Yes" : "No"}</p>
+                            <p><span className="text-gray-500">Active:</span> {
+                              'isActive' in groupConversation && typeof groupConversation.isActive === 'boolean'
+                                ? (groupConversation.isActive ? "Yes" : "No")
+                                : "Unknown"
+                            }</p>
                           </>
                         )}
                         <p><span className="text-gray-500">Members:</span> {groupMemberCount}</p>
@@ -716,13 +839,17 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
                       : isRefreshing
                         ? "Refreshing..."
                         : isGroupJoined 
-                          ? `Leave Group${groupConversation?.name ? `: ${groupConversation.name}` : ""}` 
+                          ? `Leave Group${
+                              groupConversation && typeof groupConversation === 'object' && 'name' in groupConversation && typeof groupConversation.name === 'string' 
+                                ? `: ${groupConversation.name}` 
+                                : ""
+                            }` 
                           : "Join Group Chat"}
                   </Button>
                 </div>
                 
                 {/* Backend Server Info Section */}
-                {client && backendInfo && (
+                {client && backendInfo && typeof backendInfo === 'object' && (
                   <div className="w-full bg-gray-900 p-3 rounded-md">
                     <div className="flex justify-between items-center">
                       <h2 className="text-white text-sm font-medium">Backend Server Info</h2>
@@ -736,36 +863,69 @@ function InnerPageComponent({ frameContext }: { frameContext: { context: any; ac
                       </Button>
                     </div>
                     <div className="text-gray-400 text-xs mt-1">
-                      <p><span className="text-gray-500">Server Group ID:</span> {backendInfo.groupId ? `${backendInfo.groupId.slice(0, 8)}...${backendInfo.groupId.slice(-8)}` : "None"}</p>
-                      <p><span className="text-gray-500">Group Name:</span> {backendInfo.groupName || "Unnamed Group"}</p>
-                      <p><span className="text-gray-500">Total Members:</span> {backendInfo.memberCount}</p>
-                      <p><span className="text-gray-500">Total Messages:</span> {backendInfo.messageCount}</p>
+                      <p><span className="text-gray-500">Server Group ID:</span> {
+                        backendInfo.groupId && typeof backendInfo.groupId === 'string' 
+                          ? `${backendInfo.groupId.slice(0, 8)}...${backendInfo.groupId.slice(-8)}` 
+                          : "None"
+                      }</p>
+                      <p><span className="text-gray-500">Group Name:</span> {
+                        backendInfo.groupName && typeof backendInfo.groupName === 'string' 
+                          ? backendInfo.groupName 
+                          : "Unnamed Group"
+                      }</p>
+                      <p><span className="text-gray-500">Total Members:</span> {
+                        typeof backendInfo.memberCount === 'number' 
+                          ? backendInfo.memberCount 
+                          : 0
+                      }</p>
+                      <p><span className="text-gray-500">Total Messages:</span> {
+                        typeof backendInfo.messageCount === 'number' 
+                          ? backendInfo.messageCount 
+                          : 0
+                      }</p>
                       
                       {/* Last message display */}
-                      {backendInfo.lastMessage && (
+                      {backendInfo.lastMessage && typeof backendInfo.lastMessage === 'object' && (
                         <div className="mt-2 p-2 bg-gray-800 rounded-md">
                           <p className="text-sm font-medium text-gray-300">Last Message</p>
-                          <p className="text-xs text-green-400">{backendInfo.lastMessage.displaySenderId}</p>
-                          <p className="text-xs text-white mt-1">{backendInfo.lastMessage.content}</p>
+                          <p className="text-xs text-green-400">{
+                            backendInfo.lastMessage.displaySenderId && typeof backendInfo.lastMessage.displaySenderId === 'string'
+                              ? backendInfo.lastMessage.displaySenderId
+                              : "Unknown sender"
+                          }</p>
+                          <p className="text-xs text-white mt-1">{
+                            backendInfo.lastMessage.content && typeof backendInfo.lastMessage.content === 'string'
+                              ? backendInfo.lastMessage.content
+                              : "No content"
+                          }</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(backendInfo.lastMessage.sentAt).toLocaleString()}
+                            {backendInfo.lastMessage.sentAt && typeof backendInfo.lastMessage.sentAt === 'string'
+                              ? new Date(backendInfo.lastMessage.sentAt).toLocaleString()
+                              : "Unknown time"
+                            }
                           </p>
                         </div>
                       )}
                       
                       {/* Members list collapsible */}
-                      {backendInfo.members.length > 0 && (
+                      {backendInfo.members && Array.isArray(backendInfo.members) && backendInfo.members.length > 0 && (
                         <details className="mt-2">
                           <summary className="text-sm font-medium text-gray-300 cursor-pointer">
                             Members ({backendInfo.members.length})
                           </summary>
                           <ul className="mt-1 ml-2">
                             {backendInfo.members.map((member, index) => (
-                              <li key={index} className="text-xs flex items-center gap-2">
-                                <span className="text-gray-400">{member.displayInboxId}</span>
-                                {member.isAdmin && <span className="text-xs text-blue-400">Admin</span>}
-                                {member.isSuperAdmin && <span className="text-xs text-purple-400">Super Admin</span>}
-                              </li>
+                              typeof member === 'object' && member !== null ? (
+                                <li key={index} className="text-xs flex items-center gap-2">
+                                  <span className="text-gray-400">{
+                                    member.displayInboxId && typeof member.displayInboxId === 'string'
+                                      ? member.displayInboxId
+                                      : "Unknown member"
+                                  }</span>
+                                  {member.isAdmin === true && <span className="text-xs text-blue-400">Admin</span>}
+                                  {member.isSuperAdmin === true && <span className="text-xs text-purple-400">Super Admin</span>}
+                                </li>
+                              ) : null
                             ))}
                           </ul>
                         </details>
