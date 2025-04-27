@@ -1,9 +1,9 @@
+// This is a Server Component
 import { Metadata } from "next";
 import { OG_IMAGE_SIZE } from "@/lib/constants";
 import { env } from "@/lib/env";
 import "@/app/no-cache";
-import ExamplePage from "@/pages/ExamplePage";
-
+import Page from "@/pages/Page";
 // Force dynamic rendering with no caching
 export const dynamicParams = false;
 export const runtime = "nodejs";
@@ -47,5 +47,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Home() {
-  return <ExamplePage />;
+  return <Page />;
 }

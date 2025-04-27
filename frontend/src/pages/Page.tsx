@@ -1,19 +1,40 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { SafeAreaContainer } from "@/components/SafeAreaContainer";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { useXMTP } from "@/context/xmtp-context";
-import { useAccount } from "wagmi";
-import { ConnectionInfo } from "../examples";
-import { WalletConnection } from "../examples";
-import { GroupManagement } from "../examples";
-import { BackendInfo } from "../examples";
-import { LogoutButton } from "../examples";
+import ConnectionInfo from "@/examples/ConnectionInfo";
+import WalletConnection from "@/examples/WalletConnection";
+import GroupManagement from "@/examples/GroupManagement";
+import BackendInfo from "@/examples/BackendInfo";
+import LogoutButton from "@/examples/LogoutButton";
+
+// Force dynamic rendering with no caching
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export default function ExamplePage() {
   const { client, initializing } = useXMTP();
-  const { isConnected } = useAccount();
+  const [isConnected, setIsConnected] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Only run client-side code after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // If not mounted yet, render loading
+  if (!mounted) {
+    return (
+      <SafeAreaContainer>
+        <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
+          <FullPageLoader />
+        </div>
+      </SafeAreaContainer>
+    );
+  }
 
   return (
     <SafeAreaContainer>
@@ -27,7 +48,7 @@ export default function ExamplePage() {
         ) : (
           <div className="flex flex-col gap-4 px-4 py-4 h-full overflow-auto">
             {/* Connection Info Example */}
-            <ConnectionInfo />
+            <ConnectionInfo onConnectionChange={setIsConnected} />
             
             {/* Wallet Connection Example (show only when not connected) */}
             {!client && (

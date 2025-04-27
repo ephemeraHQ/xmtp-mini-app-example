@@ -6,7 +6,11 @@ import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
 
-export default function ConnectionInfo() {
+interface ConnectionInfoProps {
+  onConnectionChange?: (isConnected: boolean) => void;
+}
+
+export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoProps) {
   const { client, conversations } = useXMTP();
   const { isConnected, address } = useAccount();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -24,6 +28,13 @@ export default function ConnectionInfo() {
       }
     }
   }, [client, address]);
+
+  // Notify parent component about connection status changes
+  useEffect(() => {
+    if (onConnectionChange) {
+      onConnectionChange(isConnected);
+    }
+  }, [isConnected, onConnectionChange]);
 
   const handleManualRefresh = async () => {
     if (!client) return;
