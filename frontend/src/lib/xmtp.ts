@@ -3,6 +3,7 @@ import { toBytes, type Hex, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const createEphemeralSigner = (privateKey: Hex): Signer => {
+  
   const account = privateKeyToAccount(privateKey);
   return {
     type: "EOA",

@@ -11,7 +11,7 @@ export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 // Use dynamic import with no SSR to avoid hydration issues
-const Page = dynamic(() => import("@/components/pages/Page"), {
+const Page = dynamic(() => import("@/pages/Page"), {
   ssr: false,
 });
 
