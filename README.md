@@ -71,16 +71,6 @@ To use the mini-app with Farcaster:
 2. Update the `accountAssociation` in your code
 3. Configure your frame with proper URLs and metadata
 
-## API Endpoints
-
-All protected endpoints require the `API_SECRET_KEY` to be provided in the request headers as `x-api-secret`.
-
-- `GET /health`: Health check endpoint
-- `POST /api/xmtp/add-inbox`: Add a user to the default group chat
-- `POST /api/xmtp/remove-inbox`: Remove a user from the default group chat
-- `POST /api/xmtp/add-inbox`: Add a user to the default group chat
-- `GET /api/xmtp/get-group-id`: Get the default group chat ID
-
 
 ## Work with Local XMTP Network
 

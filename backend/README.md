@@ -4,12 +4,14 @@ A Node.js backend service for the XMTP MiniApp that handles XMTP operations.
 
 ## Getting started
 
-> [!TIP] This backend works with any XMTP-compatible client including xmtp.chat.
+> [!TIP]
+> See XMTP's [xmtp-agents-examples](https://github.com/xmtp/xmtp-agents-examples) for vibe coding agents and best practices.
 
 ### Requirements
 
 - Node.js v20 or higher
 - Yarn v4 or higher
+- Express.js
 - Docker (optional, for local network)
 
 ### Environment variables
@@ -41,27 +43,12 @@ cp .env.example .env
 yarn run dev
 ```
 
-## API endpoints
+## API Endpoints
 
-The server runs on port `5001` by default (configurable in .env).
-
-### Public endpoints
+All protected endpoints require the `API_SECRET_KEY` to be provided in the request headers as `x-api-secret`.
 
 - `GET /health`: Health check endpoint
-
-### Protected endpoints
-
-All protected endpoints require the `API_SECRET_KEY` to be provided in the
-request headers as `x-api-secret`.
-
+- `POST /api/xmtp/add-inbox`: Add a user to the default group chat
+- `POST /api/xmtp/remove-inbox`: Remove a user from the default group chat
 - `POST /api/xmtp/add-inbox`: Add a user to the default group chat
 - `GET /api/xmtp/get-group-id`: Get the default group chat ID
-
-## Environment variables
-
-- `PORT`: Server port (default: 5001)
-- `API_SECRET_KEY`: Secret key for API authentication
-- `XMTP_PRIVATE_KEY`: XMTP private key
-- `XMTP_ENCRYPTION_KEY`: XMTP encryption key
-- `XMTP_ENV`: XMTP environment (dev/local/production)
-- `GROUP_ID`: Default XMTP conversation ID
