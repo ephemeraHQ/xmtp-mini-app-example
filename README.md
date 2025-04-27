@@ -1,6 +1,6 @@
-# XMTP Mini-App Examples
+# XMTP Mini-App Debugger
 
-This repository contains examples of mini-apps built with the [XMTP](https://docs.xmtp.org/) network and Farcaster Frames.
+This repository provides a debugging toolkit for mini-apps built with the [XMTP](https://docs.xmtp.org/) network and Farcaster Frames.
 
 ## Why XMTP?
 
@@ -10,24 +10,23 @@ This repository contains examples of mini-apps built with the [XMTP](https://doc
 - **Decentralized**: Operates on a peer-to-peer network, eliminating single points of failure and ensuring continued operation even if some nodes go offline.
 - **Multi-agent**: Allows confidential communication between multiple agents and humans through MLS group chats.
 
+## Getting started
 
-## Getting Started
-
-This repository contains a full-stack mini-app example with both frontend and backend components.
+This debugging toolkit includes a full-stack mini-app example with both frontend and backend components.
 
 ### Repository Structure
 
-The repository is structured as follows:
+The debugger is structured as follows:
 
-- [frontend](./frontend): The frontend is a Next.js application with Farcaster Frames integration.
-- [backend](./backend): The backend is a Node.js application that handles a group chat for the mini-app.
+- [frontend](./frontend): The debugging frontend is a Next.js application with Farcaster Frames integration.
+- [backend](./backend): The debugging backend is a Node.js application that handles a group chat for the mini-app.
 
 ### Requirements
 
 - Node.js v20 or higher
 - Yarn v4 or higher
-- Docker (optional, for local network)
-- A Farcaster account (for Frames integration)
+- Docker (optional, for local network debugging)
+- A Farcaster account (for Frames integration testing)
 
 ### Installation
 
@@ -44,7 +43,7 @@ cp .env.example .env
 yarn run dev
 ```
 
-### Running the mini-app
+### Running the debugger
 
 Create a `.env` file in the `frontend` directory with the following variables:
 
@@ -58,24 +57,24 @@ XMTP_ENV=dev # XMTP environment (dev/production)
 NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 ```
 
-## Examples
+## Debugging Examples
 
 - [Wallet Connection](./frontend/src/examples/WalletConnection.tsx)
 - [Connection Info](./frontend/src/examples/ConnectionInfo.tsx)
 - [Group Management](./frontend/src/examples/GroupManagement.tsx) 
 
-## Deployment
+## Deployment of Your Debugged App
 
-This is a standard Next.js app that can be deployed to any hosting provider. For the backend, we recommend using a container-based service.
+Once your mini-app is debugged, you can deploy it to any hosting provider:
 
 1. Update production environment variables
 2. For Farcaster Frame integration, update the `farcaster.json` manifest file with:
    - Generated `accountAssociation` from Warpcast Mobile
    - Set proper URLs in the manifest
 
-## Farcaster Frames Integration
+## Debugging Farcaster Frames Integration
 
-To use the mini-app with Farcaster:
+To debug your mini-app with Farcaster:
 
 1. Generate domain manifest from Warpcast Mobile
    - Go to Settings > Developer > Domains
@@ -83,11 +82,11 @@ To use the mini-app with Farcaster:
    - Generate domain manifest
 2. Update the `accountAssociation` in your code
 3. Configure your frame with proper URLs and metadata
+4. Use the debugger to validate frame responses
 
+## Debugging with Local XMTP Network
 
-## Work with Local XMTP Network
-
-`dev` and `production` networks are hosted by XMTP, while `local` network is hosted by yourself.
+For isolated debugging, use a local XMTP network:
 
 1. Install Docker
 2. Start the XMTP service and database
@@ -102,9 +101,7 @@ To use the mini-app with Farcaster:
 XMTP_ENV=local
 ```
 
-
-
-## Additional Resources
+## Additional Debugging Resources
 
 - [xmtp.chat](https://xmtp.chat) - Web best practices with XMTP `browser-sdk`
 - [Farcaster Frames Documentation](https://docs.farcaster.xyz/reference/frames/spec)
