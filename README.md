@@ -51,7 +51,6 @@ NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 - [Group Chat](./frontend/src/examples/GroupChat.tsx)
 - [Backend Info](./frontend/src/examples/BackendInfo.tsx)
 
-
 ## Deployment
 
 This is a standard Next.js app that can be deployed to any hosting provider. For the backend, we recommend using a container-based service.
@@ -74,14 +73,11 @@ To use the mini-app with Farcaster:
 
 ## API Endpoints
 
-The backend server provides these endpoints:
-
-### Public endpoints
-- `GET /health`: Health check endpoint
-
-### Protected endpoints
 All protected endpoints require the `API_SECRET_KEY` to be provided in the request headers as `x-api-secret`.
 
+- `GET /health`: Health check endpoint
+- `POST /api/xmtp/add-inbox`: Add a user to the default group chat
+- `POST /api/xmtp/remove-inbox`: Remove a user from the default group chat
 - `POST /api/xmtp/add-inbox`: Add a user to the default group chat
 - `GET /api/xmtp/get-group-id`: Get the default group chat ID
 
@@ -102,7 +98,6 @@ All protected endpoints require the `API_SECRET_KEY` to be provided in the reque
 ```bash
 XMTP_ENV=local
 ```
-
 
 ## Web inbox
 
