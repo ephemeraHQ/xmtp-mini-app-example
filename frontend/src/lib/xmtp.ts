@@ -28,20 +28,14 @@ export const createEphemeralSigner = (privateKey: Hex): Signer => {
           return signatureCache[cacheKey];
         }
         
-        try {
-          const signature = await account.signMessage({
-            message,
-          });
-          const signatureBytes = toBytes(signature);
-          
-          // Cache the signature
-          signatureCache[cacheKey] = signatureBytes;
-          
-          return signatureBytes;
-        } catch (error) {
-          console.error("Error signing message with ephemeral key:", error);
-          throw error;
-        }
+        // Sign the message
+        const signature = await account.signMessage({ message });
+        const signatureBytes = toBytes(signature);
+        
+        // Cache the signature
+        signatureCache[cacheKey] = signatureBytes;
+        
+        return signatureBytes;
       },
     };
 };
@@ -51,10 +45,6 @@ export const createEOASigner = (
   walletClient: WalletClient,
 ): Signer => {
   console.log("Creating EOA signer for address:", address);
-  
-  // Create a unique identifier for this signer instance to help with debugging
-  const signerId = `eoa_${address.slice(0, 6)}_${Date.now().toString().slice(-6)}`;
-  console.log(`EOA signer ${signerId} created`);
   
   return {
     type: "EOA",
@@ -67,87 +57,28 @@ export const createEOASigner = (
       
       // Check if we have a cached signature
       if (signatureCache[cacheKey]) {
-        console.log(`EOA signer ${signerId} using cached signature`);
+        console.log("Using cached EOA signature");
         return signatureCache[cacheKey];
       }
       
-      try {
-        console.log(`EOA signer ${signerId} signing message: ${message.substring(0, 20)}...`);
-        const signature = await walletClient.signMessage({
-          account: address,
-          message,
-        });
-        console.log(`EOA signer ${signerId} message signed successfully`);
-        
-        const signatureBytes = toBytes(signature);
-        
-        // Cache the signature
-        signatureCache[cacheKey] = signatureBytes;
-        
-        return signatureBytes;
-      } catch (error) {
-        console.error(`Error in EOA signer ${signerId} when signing message:`, error);
-        // Rethrow the error so the caller can handle it
-        throw error;
-      }
+      // Sign the message
+      console.log("EOA signer signing message");
+      const signature = await walletClient.signMessage({
+        account: address,
+        message,
+      });
+      
+      const signatureBytes = toBytes(signature);
+      
+      // Cache the signature
+      signatureCache[cacheKey] = signatureBytes;
+      
+      return signatureBytes;
     },
    
   };
 };
 
-export const createSCWSigner = (
-  address: `0x${string}`,
-  walletClient: WalletClient,
-  chainId: bigint,
-): Signer => {
-  return {
-    type: "SCW",
-    getIdentifier: () => ({
-      identifier: address.toLowerCase(),
-      identifierKind: "Ethereum",
-    }),
-    signMessage: async (message: string) => {
-      const cacheKey = createCacheKey(address, message);
-      
-      // Check if we have a cached signature
-      if (signatureCache[cacheKey]) {
-        console.log("Using cached signature for SCW wallet");
-        return signatureCache[cacheKey];
-      }
-      
-      try {
-        console.log("SCW signer signing message");
-        const signature = await walletClient.signMessage({
-          account: address,
-          message,
-        });
-        console.log("SCW message signed successfully");
-        
-        const signatureBytes = toBytes(signature);
-        
-        // Cache the signature
-        signatureCache[cacheKey] = signatureBytes;
-        
-        return signatureBytes;
-      } catch (error) {
-        console.error("Error in SCW signer when signing message:", error);
-        throw error;
-      }
-    },
-    getChainId: () => {
-      return chainId;
-    },
-  };
-};
-
-/**
- * Creates a browser compatible signer that works with XMTP
- * This version handles WebAuthn signatures from Coinbase Wallet
- */
-/**
- * Creates a browser compatible signer that works with XMTP
- * This version handles WebAuthn signatures from Coinbase Wallet Smart Contracts
- */
 
 /**
  * Creates a browser compatible signer that works with XMTP

@@ -1,34 +1,27 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { useXMTP } from "@/context/xmtp-context";
 import { useBackendHealth } from "@/context/backend-health-context";
 import { env } from "@/lib/env";
 import { privateKeyToAccount } from "viem/accounts";
-import { useWalletClient } from "wagmi";
-import { hexToUint8Array } from "uint8array-extras";
-import { createEOASigner } from "@/lib/xmtp";
 
 // Constants for local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
 const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
-const AUTO_CONNECT_ATTEMPTED = "xmtp:autoConnectAttempted";
 
 interface ConnectionInfoProps {
   onConnectionChange?: (isConnected: boolean) => void;
 }
 
 export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoProps) {
-  const { client, conversations, initialize } = useXMTP();
-  const { data: walletData } = useWalletClient();
+  const { client, conversations } = useXMTP();
   const { backendStatus } = useBackendHealth();
   const { isConnected, address, connector } = useAccount();
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
   const [isActuallyConnected, setIsActuallyConnected] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
-  const [autoConnectAttempted, setAutoConnectAttempted] = useState(false);
   const [walletInfo, setWalletInfo] = useState<{
     provider?: string;
     isInApp?: boolean;
@@ -118,49 +111,6 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
     detectEnvironment();
   }, [connector]);
 
-  // Connect to XMTP with current wallet
-  const connectToXMTP = useCallback(async () => {
-    if (!walletData || !address || isInitializing) return;
-    
-    setIsInitializing(true);
-    try {
-      localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
-      const signer = createEOASigner(address, walletData);
-      console.log("Connecting to XMTP with wallet:", {
-        address,
-        connectorName: connector?.name,
-        connectorType: connector?.type,
-        walletProviders: walletInfo.injectors,
-        isSCW: walletInfo.isSCW,
-        isCoinbase: walletInfo.isCoinbase
-      });
-      
-      await initialize({
-        dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
-        env: env.NEXT_PUBLIC_XMTP_ENV,
-        loggingLevel: "off",
-        signer,
-      });
-    } catch (error) {
-      console.error("Failed to initialize XMTP:", error);
-    } finally {
-      setIsInitializing(false);
-      sessionStorage.setItem(AUTO_CONNECT_ATTEMPTED, "true");
-      setAutoConnectAttempted(true);
-    }
-  }, [walletData, address, initialize, isInitializing, connector, walletInfo]);
-
-  // Auto-connect to XMTP when wallet is connected but XMTP isn't
-  useEffect(() => {
-    const hasAttemptedAutoConnect = sessionStorage.getItem(AUTO_CONNECT_ATTEMPTED) === "true";
-    const needsXMTPConnection = isConnected && address && !client && !isInitializing;
-    
-    if (needsXMTPConnection && walletData && !hasAttemptedAutoConnect && !autoConnectAttempted) {
-      console.log("Auto-connecting to XMTP...");
-      connectToXMTP();
-    }
-  }, [isConnected, address, client, walletData, connectToXMTP, isInitializing, autoConnectAttempted]);
-
   // Get ephemeral wallet address if available
   useEffect(() => {
     try {
@@ -178,13 +128,6 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
     } catch (error) {
       console.error("Error accessing localStorage:", error);
     }
-  }, []);
-
-  // Reset auto-connect flag when component unmounts
-  useEffect(() => {
-    return () => {
-      sessionStorage.removeItem(AUTO_CONNECT_ATTEMPTED);
-    };
   }, []);
 
   // Detect connection type
@@ -216,9 +159,6 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
       onConnectionChange(newConnectionState || false);
     }
   }, [isConnected, client, connectionType, ephemeralAddress, onConnectionChange]);
-
-  // Check if wallet is connected but XMTP is not
-  const needsXMTPConnection = isConnected && address && !client && !isInitializing;
 
   return (
     <div className="w-full bg-gray-900 p-3 rounded-md">
@@ -255,19 +195,6 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
             <span className="text-yellow-500">Checking...</span>
           )}
         </p>
-        
-        {needsXMTPConnection && (
-          <button 
-            onClick={connectToXMTP}
-            disabled={isInitializing}
-            className="mt-2 py-1 px-2 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isInitializing ? "Connecting..." : "Connect to XMTP"}
-          </button>
-        )}
-        {isInitializing && (
-          <p className="mt-1 text-yellow-500">Initializing XMTP connection...</p>
-        )}
       </div>
     </div>
   );

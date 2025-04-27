@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { hexToUint8Array } from "uint8array-extras";
 import { injected, useConnect, useWalletClient, useAccount } from "wagmi";
 import { coinbaseWallet } from "wagmi/connectors";
@@ -9,408 +9,158 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
-import { createSCWSigner, createEphemeralSigner, createEOASigner, createSignerForCoinbaseSmartWallet } from "@/lib/xmtp";
-
-// Extend window type with ethereum property that matches global Window type
-declare global {
-  interface Window {
-    ethereum?: any; // Use any type to avoid conflicts with existing declarations
-  }
-}
+import {  createEphemeralSigner, createEOASigner, createSignerForCoinbaseSmartWallet } from "@/lib/xmtp";
 
 // Simple local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
 const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
-const METAMASK_CONNECTION_PENDING = "metamask_connection_pending";
-const XMTP_INITIALIZATION_IN_PROGRESS = "xmtp:initialization_in_progress";
-const WALLET_CONNECTED_WAITING_FOR_DATA = "xmtp:wallet_connected_waiting";
-const COINBASE_CONNECTION_PENDING = "coinbase_connection_pending";
+const XMTP_INITIALIZING = "xmtp:initializing";
 
 export default function WalletConnection() {
   const { initialize, initializing, client } = useXMTP();
   const { data: walletData } = useWalletClient();
   const { connect } = useConnect();
-  const { isConnected } = useAccount();
+  const { isConnected, connector } = useAccount();
   
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
-  const connectionAttemptedRef = useRef(false);
-  const xmtpInitializedRef = useRef(false);
-  const pendingConnectionRef = useRef<string | null>(null);
 
   // Initialize XMTP client with wallet signer
   const initializeXmtp = useCallback(async (signer: any) => {
-    // Check if initialization is already in progress
-    if (xmtpInitializedRef.current || sessionStorage.getItem(XMTP_INITIALIZATION_IN_PROGRESS) === 'true') {
-      console.log("XMTP initialization already in progress, skipping duplicate call");
+    // Prevent duplicate initialization
+    if (initializing || sessionStorage.getItem(XMTP_INITIALIZING) === 'true') {
+      console.log("XMTP initialization already in progress");
       return;
     }
     
-    // Set flag to prevent multiple initializations
-    xmtpInitializedRef.current = true;
-    sessionStorage.setItem(XMTP_INITIALIZATION_IN_PROGRESS, 'true');
+    // Set initializing flag
+    sessionStorage.setItem(XMTP_INITIALIZING, 'true');
     
-    try {
-      console.log("Initializing XMTP with signer");
-      await initialize({
-        dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
-        env: env.NEXT_PUBLIC_XMTP_ENV,
-        loggingLevel: "off",
-        signer,
-      });
-      console.log("XMTP initialization successful");
-      
-      // Clear any pending connection flag
-      pendingConnectionRef.current = null;
-      sessionStorage.removeItem(WALLET_CONNECTED_WAITING_FOR_DATA);
-    } catch (error) {
-      console.error("XMTP initialization failed:", error);
-    } finally {
-      // Clear the initialization flag only after completion
-      sessionStorage.removeItem(XMTP_INITIALIZATION_IN_PROGRESS);
-    }
-  }, [initialize]);
-
-  // Helper function to check if connection is already pending
-  const checkConnectionPending = (): boolean => {
-    return sessionStorage.getItem(METAMASK_CONNECTION_PENDING) === 'true' || 
-           sessionStorage.getItem(COINBASE_CONNECTION_PENDING) === 'true';
-  };
-
-  // Helper function to set connection pending state
-  const setConnectionPending = (isPending: boolean, type: 'metamask' | 'coinbase'): void => {
-    const key = type === 'metamask' ? METAMASK_CONNECTION_PENDING : COINBASE_CONNECTION_PENDING;
-    if (isPending) {
-      sessionStorage.setItem(key, 'true');
-    } else {
-      sessionStorage.removeItem(key);
-    }
-  };
-
-  // Helper function to safely request accounts - wrapped in useCallback
-  const safeRequestAccounts = useCallback(async () => {
-    if (checkConnectionPending() || !window.ethereum) {
-      return null;
-    }
-
-    try {
-      setConnectionPending(true, 'metamask');
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      
-      // Only proceed with wallet_requestPermissions if we don't have accounts
-      if (!accounts || accounts.length === 0) {
-        return await window.ethereum.request({ 
-          method: 'wallet_requestPermissions', 
-          params: [{ eth_accounts: {} }] 
-        }).then(() => {
-          return window.ethereum!.request({ method: 'eth_requestAccounts' });
-        });
-      }
-      
-      return accounts;
-    } catch (error) {
-      console.error("Error requesting accounts:", error);
-      return null;
-    } finally {
-      setConnectionPending(false, 'metamask');
-    }
-  }, []);
+    console.log("Initializing XMTP with signer");
+    await initialize({
+      dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
+      env: env.NEXT_PUBLIC_XMTP_ENV,
+      loggingLevel: "off",
+      signer,
+    });
+    
+    // Clear initializing flag
+    sessionStorage.removeItem(XMTP_INITIALIZING);
+  }, [initialize, initializing]);
 
   // Load saved connection on mount
   useEffect(() => {
-    // Prevent multiple connection attempts during a session
-    if (connectionAttemptedRef.current) return;
-    connectionAttemptedRef.current = true;
+    // Clear any stale flags
+    sessionStorage.removeItem(XMTP_INITIALIZING);
 
-    // Clear initialization flags on component mount
-    sessionStorage.removeItem(XMTP_INITIALIZATION_IN_PROGRESS);
-    sessionStorage.removeItem(WALLET_CONNECTED_WAITING_FOR_DATA);
-    sessionStorage.removeItem(COINBASE_CONNECTION_PENDING);
-    xmtpInitializedRef.current = false;
-    pendingConnectionRef.current = null;
-
+    // Check for existing connection
     const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
-    if (savedConnectionType) {
-      console.log(`Restoring saved connection type: ${savedConnectionType}, isConnected: ${isConnected}`);
-      setConnectionType(savedConnectionType);
-
-      // For ephemeral wallets, reconnect immediately
-      if (savedConnectionType === "Ephemeral Wallet") {
-        const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
-        if (savedPrivateKey) {
-          try {
-            // Format key properly
-            const formattedKey = savedPrivateKey.startsWith('0x') 
-              ? savedPrivateKey as `0x${string}` 
-              : `0x${savedPrivateKey}` as `0x${string}`;
-            
-            // Create account from saved key
-            const account = privateKeyToAccount(formattedKey);
-            setEphemeralAddress(account.address);
-            
-            // Connect with ephemeral signer
-            const ephemeralSigner = createEphemeralSigner(formattedKey);
-            initializeXmtp(ephemeralSigner);
-          } catch (error) {
-            console.error("Error reconnecting ephemeral wallet:", error);
-          }
-        }
-      } else if (savedConnectionType === "EOA Wallet") {
-        if (isConnected && walletData) {
-          // If wallet is already connected, initialize XMTP directly
-          console.log("Wallet already connected, initializing XMTP with existing wallet data");
-          const signer = createEOASigner(walletData.account.address, walletData);
-          initializeXmtp(signer);
-        } else if (window.ethereum && !isConnected) {
-          // Only try to reconnect EOA wallet if not already connected
-          console.log("Attempting to reconnect EOA wallet");
-          const timer = setTimeout(() => {
-            // Try to reconnect EOA wallet with the safer approach
-            safeRequestAccounts().then(accounts => {
-              if (accounts && accounts.length > 0) {
-                console.log("Accounts found, connecting to EOA wallet");
-                // Set pending connection type before connecting
-                pendingConnectionRef.current = "EOA Wallet";
-                sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "EOA Wallet");
-                connect({ connector: injected() });
-              }
-            });
-          }, 300);
-          
-          return () => clearTimeout(timer);
-        }
-      } else if (savedConnectionType === "Smart Contract Wallet") {
-        if (isConnected && walletData) {
-          // If wallet is already connected, initialize XMTP directly
-          console.log("SCW already connected, initializing XMTP with existing wallet data");
-          initializeXmtp(
-            createSCWSigner(
-              walletData.account.address,
-              walletData,
-              BigInt(mainnet.id),
-            )
-          
-          
-          );
-        } else if (window.ethereum && !isConnected) {
-          // Only try to reconnect SCW if not already connected
-          console.log("Attempting to reconnect Smart Contract Wallet");
-          const timer = setTimeout(() => {
-            // Set pending connection type before connecting
-            pendingConnectionRef.current = "Smart Contract Wallet";
-            sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Smart Contract Wallet");
-            // Try to reconnect SCW
-            connect({ connector: injected() });
-          }, 300);
-          
-          return () => clearTimeout(timer);
-        }
-      } else if (savedConnectionType === "Coinbase Smart Wallet") {
-        if (isConnected && walletData) {
-          // If wallet is already connected, initialize XMTP directly
-          console.log("Coinbase Smart Wallet already connected, initializing XMTP with existing wallet data");
-          initializeXmtp(
-            createSignerForCoinbaseSmartWallet(
-              walletData.account.address,
-              walletData,
-              BigInt(mainnet.id),
-            )
-          );
-        } else if (!isConnected) {
-          // Only try to reconnect Coinbase SCW if not already connected
-          console.log("Attempting to reconnect Coinbase Smart Wallet");
-          const timer = setTimeout(() => {
-            // Set pending connection type before connecting
-            pendingConnectionRef.current = "Coinbase Smart Wallet";
-            sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Coinbase Smart Wallet");
-            
-            // Connect with Coinbase Wallet connector with Smart Wallet preference
-            connectWithCoinbaseSmartWallet();
-          }, 300);
-          
-          return () => clearTimeout(timer);
-        }
-      }
-    }
-  }, [connect, initializeXmtp, safeRequestAccounts, isConnected, walletData]);
-
-  // Connect with EOA wallet (MetaMask)
-  const connectWithEOA = useCallback(() => {
-    if (initializing) {
-      console.log("XMTP initialization already in progress, ignoring connection attempt");
-      return;
-    }
+    if (!savedConnectionType || client) return;
     
-    setConnectionType("EOA Wallet");
-    console.log("Connecting with EOA wallet, isConnected:", isConnected);
-    
-    // For MetaMask, request accounts with safeguards
-    if (window.ethereum?.isMetaMask) {
-      if (isConnected && walletData) {
-        console.log("Already connected, initializing XMTP with existing wallet data");
-        localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
+    console.log(`Restoring connection: ${savedConnectionType}`);
+    setConnectionType(savedConnectionType);
+
+    // Handle each connection type
+    if (savedConnectionType === "Ephemeral Wallet") {
+      const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
+      if (savedPrivateKey) {
+        const formattedKey = savedPrivateKey.startsWith('0x') 
+          ? savedPrivateKey as `0x${string}` 
+          : `0x${savedPrivateKey}` as `0x${string}`;
         
-        const signer = createEOASigner(walletData.account.address, walletData);
-        initializeXmtp(signer);
-        return;
+        const account = privateKeyToAccount(formattedKey);
+        setEphemeralAddress(account.address);
+        
+        initializeXmtp(createEphemeralSigner(formattedKey));
       }
-      
-      safeRequestAccounts()
-        .then(accounts => {
-          if (accounts && accounts.length > 0) {
-            console.log("Accounts found, connecting to wallet");
-            // Save connection type
-            localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
-            
-            // Set pending connection type before connecting
-            pendingConnectionRef.current = "EOA Wallet";
-            sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "EOA Wallet");
-            
-            // Connect with injected provider
-            connect({ connector: injected() });
-          }
-        });
-    } else {
-      // Not MetaMask, connect directly
-      localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
-      if (!isConnected) {
-        // Set pending connection type before connecting
-        pendingConnectionRef.current = "EOA Wallet";
-        sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "EOA Wallet");
-        connect({ connector: injected() });
-      } else if (walletData) {
-        const signer = createEOASigner(walletData.account.address, walletData);
-        initializeXmtp(signer);
-      }
-    }
-  }, [connect, walletData, initializeXmtp, safeRequestAccounts, isConnected, initializing]);
-
-  // Connect with Ephemeral Wallet
-  const connectWithEphemeral = useCallback(() => {
-    if (initializing) {
-      console.log("XMTP initialization already in progress, ignoring connection attempt");
-      return;
-    }
-    
-    setConnectionType("Ephemeral Wallet");
-    
-    // Generate a new private key
-    const privateKey = generatePrivateKey();
-    
-    // Create account from private key
-    const account = privateKeyToAccount(privateKey);
-    setEphemeralAddress(account.address);
-    
-    // Save to localStorage
-    localStorage.setItem(XMTP_EPHEMERAL_KEY, privateKey);
-    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Ephemeral Wallet");
-    
-    // Initialize XMTP with ephemeral signer
-    const ephemeralSigner = createEphemeralSigner(privateKey);
-    initializeXmtp(ephemeralSigner);
-  }, [initializeXmtp, initializing]);
-
-  // Connect with Smart Contract Wallet
-  const connectWithSCW = useCallback(() => {
-    if (initializing) {
-      console.log("XMTP initialization already in progress, ignoring connection attempt");
-      return;
-    }
-    
-    setConnectionType("Smart Contract Wallet");
-    console.log("Connecting with Smart Contract Wallet, isConnected:", isConnected);
-    
-    // Save connection type
-    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Smart Contract Wallet");
-    
-    if (!isConnected) {
-      // Set pending connection type before connecting
-      pendingConnectionRef.current = "Smart Contract Wallet";
-      sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Smart Contract Wallet");
-      // Connect to wallet
-      connect({ connector: injected() });
-    } else if (walletData?.account) {
-      // Initialize XMTP if already connected and have wallet data
-      initializeXmtp(
-        createSCWSigner(
+    } else if (isConnected && walletData) {
+      // Handle wallet connections if already connected
+      if (savedConnectionType === "EOA Wallet") {
+        initializeXmtp(createEOASigner(walletData.account.address, walletData));
+      } else if (savedConnectionType === "Coinbase Smart Wallet" && 
+                 connector?.id === 'coinbaseWalletSDK') {
+        initializeXmtp(createSignerForCoinbaseSmartWallet(
           walletData.account.address,
           walletData,
-          BigInt(mainnet.id),
-        )
-      );
+          BigInt(mainnet.id)
+        ));
+      }
     }
-  }, [connect, initializeXmtp, walletData, isConnected, initializing]);
-
-  // Connect with Coinbase Smart Wallet
-  const connectWithCoinbaseSmartWallet = useCallback(() => {
-    if (initializing) {
-      console.log("XMTP initialization already in progress, ignoring connection attempt");
-      return;
-    }
-    
-    try {
-      setConnectionPending(true, 'coinbase');
-      
-      setConnectionType("Coinbase Smart Wallet");
-      console.log("Connecting with Coinbase Smart Wallet");
-      
-      // Save connection type
-      localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Smart Wallet");
-      
-      // Set pending connection type before connecting
-      pendingConnectionRef.current = "Coinbase Smart Wallet";
-      sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Coinbase Smart Wallet");
-      
-      // Connect with Coinbase Wallet connector configured to prefer smart wallets
-      const coinbaseConnector = coinbaseWallet({
-        appName: "XMTP Mini App",
-        preference: {
-          options: "smartWalletOnly"
-        }
-      });
-      
-      connect({ connector: coinbaseConnector });
-    } catch (error) {
-      console.error("Error connecting to Coinbase Smart Wallet:", error);
-    } finally {
-      setConnectionPending(false, 'coinbase');
-    }
-  }, [connect, initializing]);
+  }, [client, initializeXmtp, isConnected, walletData, connector]);
 
   // Watch for wallet data becoming available to complete initialization
   useEffect(() => {
-    // Skip if we don't have wallet data or if client already exists or initializing
-    if (!walletData || client || initializing || xmtpInitializedRef.current) {
-      return;
+    if (!walletData || client || initializing || !isConnected) return;
+    
+    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+    if (!savedConnectionType) return;
+    
+    console.log(`Wallet data available for ${savedConnectionType}, initializing XMTP`);
+    
+    if (savedConnectionType === "EOA Wallet") {
+      initializeXmtp(createEOASigner(walletData.account.address, walletData));
+    }  else if (savedConnectionType === "Coinbase Smart Wallet") {
+      initializeXmtp(createSignerForCoinbaseSmartWallet(
+        walletData.account.address,
+        walletData,
+        BigInt(mainnet.id)
+      ));
     }
+  }, [walletData, client, initializing, isConnected, initializeXmtp]);
+
+  // Connect with EOA wallet
+  const connectWithEOA = useCallback(() => {
+    if (initializing) return;
     
-    // Check if we have a pending connection that needs to be completed
-    const pendingType = pendingConnectionRef.current || sessionStorage.getItem(WALLET_CONNECTED_WAITING_FOR_DATA);
+    setConnectionType("EOA Wallet");
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
     
-    if (!pendingType) {
-      return;
+    if (isConnected && walletData) {
+      initializeXmtp(createEOASigner(walletData.account.address, walletData));
+    } else {
+      connect({ connector: injected() });
     }
+  }, [connect, walletData, initializeXmtp, isConnected, initializing]);
+
+  // Connect with Ephemeral Wallet
+  const connectWithEphemeral = useCallback(() => {
+    if (initializing) return;
     
-    console.log(`Wallet data available, completing initialization for ${pendingType}`);
+    setConnectionType("Ephemeral Wallet");
     
-    if (pendingType === "EOA Wallet") {
-      const signer = createEOASigner(walletData.account.address, walletData);
-      initializeXmtp(signer);
-    } else if (pendingType === "Smart Contract Wallet" || pendingType === "Coinbase Smart Wallet") {
-      initializeXmtp(
-        createSCWSigner(
-          walletData.account.address,
-          walletData,
-          BigInt(mainnet.id),
-        )
-      );
+    const privateKey = generatePrivateKey();
+    const account = privateKeyToAccount(privateKey);
+    setEphemeralAddress(account.address);
+    
+    localStorage.setItem(XMTP_EPHEMERAL_KEY, privateKey);
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Ephemeral Wallet");
+    
+    initializeXmtp(createEphemeralSigner(privateKey));
+  }, [initializeXmtp, initializing]);
+
+ 
+  // Connect with Coinbase Smart Wallet
+  const connectWithCoinbaseSmartWallet = useCallback(() => {
+    if (initializing) return;
+    
+    setConnectionType("Coinbase Smart Wallet");
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Smart Wallet");
+    
+    if (isConnected && walletData && connector?.id === 'coinbaseWalletSDK') {
+      initializeXmtp(createSignerForCoinbaseSmartWallet(
+        walletData.account.address,
+        walletData,
+        BigInt(mainnet.id)
+      ));
+    } else {
+      connect({ 
+        connector: coinbaseWallet({
+          appName: "XMTP Mini App",
+          preference: { options: "smartWalletOnly" }
+        }) 
+      });
     }
-    
-    // Clear the pending connection flag
-    pendingConnectionRef.current = null;
-    sessionStorage.removeItem(WALLET_CONNECTED_WAITING_FOR_DATA);
-    
-  }, [walletData, client, initializing, initializeXmtp]);
+  }, [connect, initializing, walletData, isConnected, connector, initializeXmtp]);
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -434,16 +184,7 @@ export default function WalletConnection() {
             ? "Connecting Ephemeral Wallet..." 
             : "Connect with Ephemeral Wallet"}
         </Button>
-        
-        <Button 
-          className="w-full" 
-          size="lg" 
-          onClick={connectWithSCW}
-          disabled={initializing}>
-          {initializing && connectionType === "Smart Contract Wallet" 
-            ? "Connecting Smart Contract Wallet..." 
-            : "Connect with Smart Contract Wallet"}
-        </Button>
+       
 
         <Button 
           className="w-full" 
