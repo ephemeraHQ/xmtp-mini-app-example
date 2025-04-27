@@ -1,6 +1,5 @@
 "use client";
 
-import eruda from "eruda";
 import { ReactNode, useEffect, createContext, useContext, useState } from "react";
 import { env } from "@/lib/env";
 
@@ -24,64 +23,73 @@ export const useEruda = () => {
 // Original Eruda component implementation
 const ErudaImpl = (props: { children: ReactNode }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [erudaInstance, setErudaInstance] = useState<any>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      try {
-        // Add CSS to hide the entry button
-        const style = document.createElement('style');
-        style.textContent = '.eruda-entry-btn { display: none !important; visibility: hidden !important; }';
-        document.head.appendChild(style);
+      // Dynamically import eruda only on the client side
+      import('eruda').then(erudaModule => {
+        const eruda = erudaModule.default;
+        setErudaInstance(eruda);
         
-        // Setup a mutation observer to remove the entry button whenever it appears
-        const observer = new MutationObserver((mutations) => {
+        try {
+          // Add CSS to hide the entry button
+          const style = document.createElement('style');
+          style.textContent = '.eruda-entry-btn { display: none !important; visibility: hidden !important; }';
+          document.head.appendChild(style);
+          
+          // Setup a mutation observer to remove the entry button whenever it appears
+          const observer = new MutationObserver((mutations) => {
+            const entryBtn = document.querySelector('.eruda-entry-btn');
+            if (entryBtn && entryBtn.parentNode) {
+              entryBtn.parentNode.removeChild(entryBtn);
+            }
+          });
+          
+          // Start observing the document body for DOM changes
+          observer.observe(document.body, { 
+            childList: true,
+            subtree: true 
+          });
+          
+          // Initialize but don't show by default
+          eruda.init({
+            autoScale: true,
+            useShadowDom: true,
+            tool: ['console', 'elements', 'network', 'resources', 'info']
+          });
+          eruda.hide();
+          
+          // Initial removal attempt
           const entryBtn = document.querySelector('.eruda-entry-btn');
           if (entryBtn && entryBtn.parentNode) {
             entryBtn.parentNode.removeChild(entryBtn);
           }
-        });
-        
-        // Start observing the document body for DOM changes
-        observer.observe(document.body, { 
-          childList: true,
-          subtree: true 
-        });
-        
-        // Initialize but don't show by default
-        eruda.init({
-          autoScale: true,
-          useShadowDom: true,
-          tool: ['console', 'elements', 'network', 'resources', 'info']
-        });
-        eruda.hide();
-        
-        // Initial removal attempt
-        const entryBtn = document.querySelector('.eruda-entry-btn');
-        if (entryBtn && entryBtn.parentNode) {
-          entryBtn.parentNode.removeChild(entryBtn);
+          
+          // Clean up observer on unmount
+          return () => {
+            observer.disconnect();
+            document.head.removeChild(style);
+          };
+        } catch (error) {
+          console.log("Eruda failed to initialize", error);
         }
-        
-        // Clean up observer on unmount
-        return () => {
-          observer.disconnect();
-          document.head.removeChild(style);
-        };
-      } catch (error) {
-        console.log("Eruda failed to initialize", error);
-      }
+      }).catch(err => {
+        console.error("Failed to load Eruda:", err);
+      });
     }
   }, []);
 
   const toggleEruda = () => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && erudaInstance) {
       try {
         if (isVisible) {
-          eruda.hide();
+          erudaInstance.hide();
         } else {
-          eruda.show();
+          erudaInstance.show();
           // Try to activate console tab by default when showing
           try {
-            const devTools = eruda.get('console');
+            const devTools = erudaInstance.get('console');
             if (devTools && typeof devTools.show === 'function') {
               devTools.show();
             }
