@@ -7,9 +7,6 @@ A Farcaster MiniApp with XMTP private chat example.
 This Farcaster Miniapp (Framev2) is a [Next.js](https://nextjs.org) project
 bootstrapped with the
 [`Builders Garden miniapp template`](https://github.com/builders-garden/miniapp-next-template),
-you can find more information about the template
-[here](https://frames-v2.builders.garden). For more information about Farcaster
-Miniapps, you can find more information [here](https://miniapps.farcaster.xyz/).
 
 ## Prerequisites
 
