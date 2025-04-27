@@ -3,12 +3,13 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import { hexToUint8Array } from "uint8array-extras";
 import { injected, useConnect, useWalletClient, useAccount } from "wagmi";
+import { coinbaseWallet } from "wagmi/connectors";
 import { mainnet } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
-import { createSCWSigner, createEphemeralSigner, createEOASigner } from "@/lib/xmtp";
+import { createSCWSigner, createEphemeralSigner, createEOASigner, createSignerForCoinbaseSmartWallet } from "@/lib/xmtp";
 
 // Extend window type with ethereum property that matches global Window type
 declare global {
@@ -23,6 +24,7 @@ const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
 const METAMASK_CONNECTION_PENDING = "metamask_connection_pending";
 const XMTP_INITIALIZATION_IN_PROGRESS = "xmtp:initialization_in_progress";
 const WALLET_CONNECTED_WAITING_FOR_DATA = "xmtp:wallet_connected_waiting";
+const COINBASE_CONNECTION_PENDING = "coinbase_connection_pending";
 
 export default function WalletConnection() {
   const { initialize, initializing, client } = useXMTP();
@@ -71,15 +73,17 @@ export default function WalletConnection() {
 
   // Helper function to check if connection is already pending
   const checkConnectionPending = (): boolean => {
-    return sessionStorage.getItem(METAMASK_CONNECTION_PENDING) === 'true';
+    return sessionStorage.getItem(METAMASK_CONNECTION_PENDING) === 'true' || 
+           sessionStorage.getItem(COINBASE_CONNECTION_PENDING) === 'true';
   };
 
   // Helper function to set connection pending state
-  const setConnectionPending = (isPending: boolean): void => {
+  const setConnectionPending = (isPending: boolean, type: 'metamask' | 'coinbase'): void => {
+    const key = type === 'metamask' ? METAMASK_CONNECTION_PENDING : COINBASE_CONNECTION_PENDING;
     if (isPending) {
-      sessionStorage.setItem(METAMASK_CONNECTION_PENDING, 'true');
+      sessionStorage.setItem(key, 'true');
     } else {
-      sessionStorage.removeItem(METAMASK_CONNECTION_PENDING);
+      sessionStorage.removeItem(key);
     }
   };
 
@@ -90,7 +94,7 @@ export default function WalletConnection() {
     }
 
     try {
-      setConnectionPending(true);
+      setConnectionPending(true, 'metamask');
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
       
       // Only proceed with wallet_requestPermissions if we don't have accounts
@@ -108,7 +112,7 @@ export default function WalletConnection() {
       console.error("Error requesting accounts:", error);
       return null;
     } finally {
-      setConnectionPending(false);
+      setConnectionPending(false, 'metamask');
     }
   }, []);
 
@@ -121,6 +125,7 @@ export default function WalletConnection() {
     // Clear initialization flags on component mount
     sessionStorage.removeItem(XMTP_INITIALIZATION_IN_PROGRESS);
     sessionStorage.removeItem(WALLET_CONNECTED_WAITING_FOR_DATA);
+    sessionStorage.removeItem(COINBASE_CONNECTION_PENDING);
     xmtpInitializedRef.current = false;
     pendingConnectionRef.current = null;
 
@@ -184,6 +189,8 @@ export default function WalletConnection() {
               walletData,
               BigInt(mainnet.id),
             )
+          
+          
           );
         } else if (window.ethereum && !isConnected) {
           // Only try to reconnect SCW if not already connected
@@ -194,6 +201,31 @@ export default function WalletConnection() {
             sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Smart Contract Wallet");
             // Try to reconnect SCW
             connect({ connector: injected() });
+          }, 300);
+          
+          return () => clearTimeout(timer);
+        }
+      } else if (savedConnectionType === "Coinbase Smart Wallet") {
+        if (isConnected && walletData) {
+          // If wallet is already connected, initialize XMTP directly
+          console.log("Coinbase Smart Wallet already connected, initializing XMTP with existing wallet data");
+          initializeXmtp(
+            createSignerForCoinbaseSmartWallet(
+              walletData.account.address,
+              walletData,
+              BigInt(mainnet.id),
+            )
+          );
+        } else if (!isConnected) {
+          // Only try to reconnect Coinbase SCW if not already connected
+          console.log("Attempting to reconnect Coinbase Smart Wallet");
+          const timer = setTimeout(() => {
+            // Set pending connection type before connecting
+            pendingConnectionRef.current = "Coinbase Smart Wallet";
+            sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Coinbase Smart Wallet");
+            
+            // Connect with Coinbase Wallet connector with Smart Wallet preference
+            connectWithCoinbaseSmartWallet();
           }, 300);
           
           return () => clearTimeout(timer);
@@ -309,6 +341,42 @@ export default function WalletConnection() {
     }
   }, [connect, initializeXmtp, walletData, isConnected, initializing]);
 
+  // Connect with Coinbase Smart Wallet
+  const connectWithCoinbaseSmartWallet = useCallback(() => {
+    if (initializing) {
+      console.log("XMTP initialization already in progress, ignoring connection attempt");
+      return;
+    }
+    
+    try {
+      setConnectionPending(true, 'coinbase');
+      
+      setConnectionType("Coinbase Smart Wallet");
+      console.log("Connecting with Coinbase Smart Wallet");
+      
+      // Save connection type
+      localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Smart Wallet");
+      
+      // Set pending connection type before connecting
+      pendingConnectionRef.current = "Coinbase Smart Wallet";
+      sessionStorage.setItem(WALLET_CONNECTED_WAITING_FOR_DATA, "Coinbase Smart Wallet");
+      
+      // Connect with Coinbase Wallet connector configured to prefer smart wallets
+      const coinbaseConnector = coinbaseWallet({
+        appName: "XMTP Mini App",
+        preference: {
+          options: "smartWalletOnly"
+        }
+      });
+      
+      connect({ connector: coinbaseConnector });
+    } catch (error) {
+      console.error("Error connecting to Coinbase Smart Wallet:", error);
+    } finally {
+      setConnectionPending(false, 'coinbase');
+    }
+  }, [connect, initializing]);
+
   // Watch for wallet data becoming available to complete initialization
   useEffect(() => {
     // Skip if we don't have wallet data or if client already exists or initializing
@@ -328,7 +396,7 @@ export default function WalletConnection() {
     if (pendingType === "EOA Wallet") {
       const signer = createEOASigner(walletData.account.address, walletData);
       initializeXmtp(signer);
-    } else if (pendingType === "Smart Contract Wallet") {
+    } else if (pendingType === "Smart Contract Wallet" || pendingType === "Coinbase Smart Wallet") {
       initializeXmtp(
         createSCWSigner(
           walletData.account.address,
@@ -375,6 +443,16 @@ export default function WalletConnection() {
           {initializing && connectionType === "Smart Contract Wallet" 
             ? "Connecting Smart Contract Wallet..." 
             : "Connect with Smart Contract Wallet"}
+        </Button>
+
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={connectWithCoinbaseSmartWallet}
+          disabled={initializing}>
+          {initializing && connectionType === "Coinbase Smart Wallet" 
+            ? "Connecting Coinbase Smart Wallet..." 
+            : "Connect with Coinbase Smart Wallet"}
         </Button>
       </div>
     </div>
