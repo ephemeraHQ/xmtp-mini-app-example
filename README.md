@@ -103,14 +103,10 @@ To use the mini-app with Farcaster:
 XMTP_ENV=local
 ```
 
-## Web inbox
-
-See web best practices with XMTP `browser-sdk` using [xmtp.chat](https://xmtp.chat), and it's open source version [xmtp-chat-web](https://github.com/xmtp/xmtp-js/tree/main/apps/xmtp.chat).
-
-![](./screenshot.png)
 
 
 ## Additional Resources
 
+- [xmtp.chat](https://xmtp.chat) - Web best practices with XMTP `browser-sdk`
 - [Farcaster Frames Documentation](https://docs.farcaster.xyz/reference/frames/spec)
 - [Builders Garden miniapp template](https://github.com/builders-garden/miniapp-next-template)
