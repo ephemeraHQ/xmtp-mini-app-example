@@ -32,9 +32,9 @@ GROUP_ID= # Default XMTP conversation ID
 
 ```bash
 # Clone repository
-git clone https://github.com/xmtp/xmtp-mini-app.git
+git clone https://github.com/xmtp/xmtp-mini-app-examples.git
 # Navigate to backend directory
-cd xmtp-mini-app/backend
+cd xmtp-mini-app-examples/backend
 # or
 yarn install
 # Create .env file

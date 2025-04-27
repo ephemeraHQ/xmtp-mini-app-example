@@ -29,6 +29,21 @@ The repository is structured as follows:
 - Docker (optional, for local network)
 - A Farcaster account (for Frames integration)
 
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/xmtp/xmtp-mini-app-examples.git
+# Navigate to backend directory
+cd xmtp-mini-app-examples/backend
+# Install dependencies
+yarn install
+# Create .env file
+cp .env.example .env
+# Run in development mode
+yarn run dev
+```
+
 ### Running the mini-app
 
 Create a `.env` file in the `frontend` directory with the following variables:
