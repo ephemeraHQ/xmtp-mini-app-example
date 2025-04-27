@@ -128,6 +128,7 @@ const addUserToDefaultGroupChat = async (
     if (!isMember) {
       await conversation.sync();
       await (conversation as Group).addMembers([newUserInboxId]);
+      await conversation.send("added to group");
       console.log("Added user to group");
     } else {
       console.log("User already in group");

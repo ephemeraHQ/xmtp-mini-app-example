@@ -63,8 +63,7 @@ NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 - [Wallet Connection](./frontend/src/examples/WalletConnection.tsx)
 - [Connection Info](./frontend/src/examples/ConnectionInfo.tsx)
 - [Group Management](./frontend/src/examples/GroupManagement.tsx) 
-- [Group Chat](./frontend/src/examples/GroupChat.tsx)
-- [Backend Info](./frontend/src/examples/BackendInfo.tsx)
+- [Logout Button](./frontend/src/examples/LogoutButton.tsx)
 
 ## Deployment
 
