@@ -8,13 +8,14 @@ import { useXMTP } from "@/context/xmtp-context";
 import ConnectionInfo from "@/examples/ConnectionInfo";
 import WalletConnection from "@/examples/WalletConnection";
 import GroupChat from "@/examples/GroupChat";
-
+import BotChat from "@/examples/BotChat";
 
 export default function ExamplePage() {
   const { client, initializing, disconnect } = useXMTP();
   const [isConnected, setIsConnected] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+  const [activeExample, setActiveExample] = useState<"group" | "bot">("group");
 
   // Mark as mounted on client-side
   useEffect(() => {
@@ -32,8 +33,6 @@ export default function ExamplePage() {
   useEffect(() => {
     setShowLoader(initializing);
   }, [initializing]);
-
- 
 
   // Show loader while not mounted
   if (!mounted) {
@@ -61,7 +60,43 @@ export default function ExamplePage() {
             
             {!client && <WalletConnection />}
             
-            {client && <GroupChat />}
+            {client && (
+              <>
+                {/* Example Selector */}
+                <div className="w-full bg-gray-900 p-3 rounded-md">
+                  <h2 className="text-white text-sm font-medium mb-2">Examples</h2>
+                  <div className="flex gap-2">
+                    <button
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        activeExample === "group" 
+                          ? "bg-blue-600 text-white" 
+                          : "bg-gray-800 text-gray-300"
+                      }`}
+                      onClick={() => setActiveExample("group")}
+                    >
+                      Group Chat
+                    </button>
+                    <button
+                      className={`px-3 py-1 text-xs rounded-md ${
+                        activeExample === "bot" 
+                          ? "bg-blue-600 text-white" 
+                          : "bg-gray-800 text-gray-300"
+                      }`}
+                      onClick={() => setActiveExample("bot")}
+                    >
+                      Bot Chat
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Display the selected example */}
+                {activeExample === "group" ? (
+                  <GroupChat />
+                ) : (
+                  <BotChat />
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
