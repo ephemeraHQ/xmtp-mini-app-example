@@ -5,6 +5,11 @@ import { useAccount } from "wagmi";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
+import { privateKeyToAccount } from "viem/accounts";
+
+// Constants for local storage keys
+const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
+const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
 
 interface ConnectionInfoProps {
   onConnectionChange?: (isConnected: boolean) => void;
@@ -16,25 +21,66 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
+  const [isActuallyConnected, setIsActuallyConnected] = useState(false);
 
-  // This would be set by the parent component in a real implementation
+  // Get ephemeral wallet address from localStorage if available
   useEffect(() => {
-    // Detect connection type based on client properties
+    try {
+      const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+      const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
+      
+      if (savedConnectionType === "Ephemeral Wallet" && savedPrivateKey) {
+        try {
+          // Format the key properly
+          const formattedKey = savedPrivateKey.startsWith('0x') 
+            ? savedPrivateKey as `0x${string}` 
+            : `0x${savedPrivateKey}` as `0x${string}`;
+          
+          // Get the account address
+          const account = privateKeyToAccount(formattedKey);
+          setEphemeralAddress(account.address);
+        } catch (error) {
+          console.error("Error retrieving ephemeral address:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+    }
+  }, []);
+
+  // Detect connection type based on client properties and localStorage
+  useEffect(() => {
     if (client) {
-      if (address) {
-        setConnectionType("EOA Wallet");
-      } else {
-        setConnectionType("Ephemeral Wallet");
+      try {
+        const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+        if (savedConnectionType) {
+          setConnectionType(savedConnectionType);
+        } else if (address) {
+          setConnectionType("EOA Wallet");
+        } else {
+          setConnectionType("Ephemeral Wallet");
+        }
+      } catch (error) {
+        console.error("Error reading connection type:", error);
       }
     }
   }, [client, address]);
 
-  // Notify parent component about connection status changes
+  // Determine actual connection status - consider both normal and ephemeral connections
   useEffect(() => {
-    if (onConnectionChange) {
-      onConnectionChange(isConnected);
+    const isEphemeralConnected = 
+      client && 
+      connectionType === "Ephemeral Wallet" && 
+      ephemeralAddress !== "";
+      
+    const newConnectionState = isConnected || Boolean(isEphemeralConnected);
+    setIsActuallyConnected(newConnectionState);
+    
+    // Notify parent component about connection status changes
+    if (typeof onConnectionChange === 'function') {
+      onConnectionChange(newConnectionState);
     }
-  }, [isConnected, onConnectionChange]);
+  }, [isConnected, client, connectionType, ephemeralAddress, onConnectionChange]);
 
   const handleManualRefresh = async () => {
     if (!client) return;
@@ -70,7 +116,7 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
         )}
       </div>
       <div className="text-gray-400 text-xs mt-1">
-        <p><span className="text-gray-500">Connected:</span> {isConnected ? "Yes" : "No"}</p>
+        <p><span className="text-gray-500">Connected:</span> {isActuallyConnected ? "Yes" : "No"}</p>
         <p><span className="text-gray-500">Type:</span> {connectionType || "Not connected"}</p>
         <p><span className="text-gray-500">Address:</span> {
           connectionType === "Ephemeral Wallet" && ephemeralAddress 

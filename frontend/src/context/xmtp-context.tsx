@@ -3,6 +3,7 @@ import {
   Conversation,
   type ClientOptions,
   type Signer,
+  Group,
 } from "@xmtp/browser-sdk";
 import {
   createContext,
@@ -36,6 +37,14 @@ export type XMTPContextValue = {
   disconnect: () => void;
   conversations: Conversation[];
   setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
+  /**
+   * The current group conversation if joined
+   */
+  groupConversation: Group | null;
+  /**
+   * Set the current group conversation
+   */
+  setGroupConversation: React.Dispatch<React.SetStateAction<Group | null>>;
 };
 
 export const XMTPContext = createContext<XMTPContextValue>({
@@ -46,6 +55,8 @@ export const XMTPContext = createContext<XMTPContextValue>({
   disconnect: () => {},
   conversations: [],
   setConversations: () => {},
+  groupConversation: null,
+  setGroupConversation: () => {},
 });
 
 export type XMTPProviderProps = React.PropsWithChildren & {
@@ -67,6 +78,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 }) => {
   const [client, setClient] = useState<Client | undefined>(initialClient);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [groupConversation, setGroupConversation] = useState<Group | null>(null);
   const [initializing, setInitializing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   // client is initializing
@@ -151,6 +163,21 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       conversationsCount: conversations.length
     });
   }, [initializing, client, error, conversations.length]);
+
+  // Debug logging for groupConversation changes
+  useEffect(() => {
+    const isGroup = !!groupConversation && typeof groupConversation.send === 'function';
+    console.log("XMTPProvider: groupConversation changed:", 
+      groupConversation ? {
+        id: groupConversation.id, 
+        name: groupConversation.name,
+        isActive: groupConversation.isActive,
+        isValidGroup: isGroup,
+        hasMembers: typeof groupConversation.members === 'function',
+        hasSend: typeof groupConversation.send === 'function'
+      } : null
+    );
+  }, [groupConversation]);
 
   /**
    * Initialize an XMTP client
@@ -348,7 +375,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
   }, [client, setClient, setConversations]);
 
   // memo-ize the context value to prevent unnecessary re-renders
-  const value = useMemo(
+  const value = useMemo<XMTPContextValue>(
     () => ({
       client,
       setClient,
@@ -358,8 +385,10 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       disconnect,
       conversations,
       setConversations,
+      groupConversation,
+      setGroupConversation,
     }),
-    [client, initialize, initializing, error, disconnect, conversations],
+    [client, initialize, initializing, error, disconnect, conversations, groupConversation],
   );
 
   return <XMTPContext.Provider value={value}>{children}</XMTPContext.Provider>;

@@ -1,23 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { SafeAreaContainer } from "@/components/SafeAreaContainer";
 import { FullPageLoader } from "@/components/FullPageLoader";
 import { useXMTP } from "@/context/xmtp-context";
 import ConnectionInfo from "@/examples/ConnectionInfo";
 import WalletConnection from "@/examples/WalletConnection";
-import GroupManagement from "@/examples/GroupManagement";
+import GroupChat from "@/examples/GroupChat";
 
 // Force dynamic rendering with no caching
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default function ExamplePage() {
-  const { client, initializing, disconnect } = useXMTP();
+  const { client, initializing, disconnect, groupConversation } = useXMTP();
   const [isConnected, setIsConnected] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+
+  // Debug log for groupConversation
+  useEffect(() => {
+    console.log("Page: groupConversation state:", groupConversation);
+  }, [groupConversation]);
+
 
   // Only run client-side code after mount
   useEffect(() => {
@@ -78,11 +84,11 @@ export default function ExamplePage() {
               <WalletConnection />
             )}
             
+            
             {/* Group Management (show when connected) */}
             {client && (
-              <GroupManagement />
+              <GroupChat />
             )}
-            
           </div>
         )}
       </div>
