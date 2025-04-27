@@ -159,6 +159,12 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         return client;
       }
 
+      // Don't proceed if already initializing (prevents double sign requests)
+      if (initializing) {
+        logger.log("XMTP client initialization already in progress, returning undefined");
+        return undefined;
+      }
+
       // Set initializing state
       logger.log("Setting initializing state");
       setError(null);
@@ -178,6 +184,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         };
 
         // Create the client
+        logger.log("Calling Client.create - this will prompt for signature");
         const xmtpClient = await Client.create(signer, clientOptions);
         logger.log("XMTP client created successfully");
         
@@ -201,7 +208,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         setInitializing(false);
       }
     },
-    [client],
+    [client, initializing],
   );
 
   /**

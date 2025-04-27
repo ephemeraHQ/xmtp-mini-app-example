@@ -2,11 +2,11 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 // Set NEXT_PUBLIC_URL based on VERCEL_URL if available
-const getPublicUrl = () => {
+export const getPublicUrl = () => {
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`;
   }
-  return process.env.NEXT_PUBLIC_URL;
+  return process.env.NEXT_PUBLIC_URL || "http://localhost:3001";
 };
 
 // https://env.t3.gg/docs/nextjs

@@ -169,10 +169,8 @@ export default function BotChat() {
           <>
             {/* Message history */}
             <div className="mt-2 border border-gray-800 rounded-md p-2 max-h-40 overflow-y-auto">
-              {messages.length === 0 ? (
-                <p className="text-gray-500 text-xs">No messages yet. Send a message to get started!</p>
-              ) : (
-                messages.map((msg, index) => {
+              {messages.length > 0 ? (
+               messages.map((msg, index) => {
                   // Get sender address safely
                   const senderAddress = BOT_ADDRESS; 
                   
@@ -199,7 +197,9 @@ export default function BotChat() {
                     </div>
                   );
                 })
-              )}
+              ):
+              <p className="text-gray-500 text-xs">No messages yet. Send a message to get started!</p>
+              }
             </div>
             
             {/* Message input */}

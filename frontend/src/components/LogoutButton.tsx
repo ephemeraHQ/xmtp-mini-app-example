@@ -58,7 +58,8 @@ export default function LogoutButton() {
 
   return (
     <Button 
-      className="w-full" 
+      className="w-full text-sm text-red-400 " 
+      
       size="default" 
       variant="destructive"
       disabled={isLoggingOut}
