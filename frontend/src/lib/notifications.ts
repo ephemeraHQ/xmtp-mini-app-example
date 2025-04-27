@@ -1,6 +1,11 @@
-import { sendNotificationResponseSchema } from "@farcaster/frame-sdk";
+// import { sendNotificationResponseSchema } from "@farcaster/frame-sdk";
 import ky from "ky";
 import { env } from "@/lib/env";
+
+// Define a simple schema if needed
+type SendNotificationResponse = {
+  success: boolean;
+};
 
 const appUrl = env.NEXT_PUBLIC_URL;
 

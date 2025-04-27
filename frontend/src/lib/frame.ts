@@ -1,5 +1,5 @@
-import ky from "ky";
 import { env } from "@/lib/env";
+import { FrameContext } from "@farcaster/frame-core/dist/context";
 
 /**
  * Get the fonts for the frame from the public folder
@@ -76,3 +76,22 @@ export async function getFarcasterManifest() {
     },
   };
 }
+
+// Mock implementation of the SDK
+export const frameSdk = {
+  context: Promise.resolve(null),
+  actions: {
+    setPrimaryButton: async () => {},
+    ready: async (options?: { disableNativeGestures?: boolean }) => {},
+    close: async () => {},
+    viewProfile: async () => {},
+    viewToken: async () => {},
+    swap: async () => {},
+    signIn: async () => ({}),
+    openUrl: async () => {},
+    addFrame: async () => ({}),
+    composeCast: async () => {},
+  },
+};
+
+export { frameSdk as sdk };

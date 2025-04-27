@@ -1,19 +1,14 @@
 import { Metadata } from "next";
-import dynamic from "next/dynamic";
 import { OG_IMAGE_SIZE } from "@/lib/constants";
 import { env } from "@/lib/env";
 import "@/app/no-cache";
+import Page from "@/pages/Page";
 
 // Force dynamic rendering with no caching
 export const dynamicParams = false;
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
-
-// Use dynamic import with no SSR to avoid hydration issues
-const Page = dynamic(() => import("@/pages/Page"), {
-  ssr: false,
-});
 
 /**
  * Default Next.js function to generate metadata for the page

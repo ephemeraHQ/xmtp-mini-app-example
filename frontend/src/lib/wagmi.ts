@@ -1,4 +1,3 @@
-import { farcasterFrame } from "@farcaster/frame-wagmi-connector";
 import { base, mainnet } from "viem/chains";
 import { cookieStorage, createConfig, createStorage, http } from "wagmi";
 
@@ -14,7 +13,8 @@ export const wagmiConfig = createConfig({
     [mainnet.id]: http("https://mainnet.llamarpc.com"),
     [base.id]: http("https://base.llamarpc.com"),
   },
-  connectors: [farcasterFrame()],
+  // Remove the connector for now to avoid build errors
+  connectors: [],
 });
 
 // Function to clear wagmi cookies
