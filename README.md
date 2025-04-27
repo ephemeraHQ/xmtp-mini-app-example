@@ -4,6 +4,10 @@ This repository provides a debugging toolkit for mini-apps built with the [XMTP]
 
 ## Getting started
 
+> [!TIP]
+> See XMTP's [xmtp-agents-examples](https://github.com/xmtp/xmtp-agents-examples) for vibe coding agents and best practices.
+
+
 This debugging toolkit includes a full-stack mini-app example with both frontend and backend components.
 
 ### Repository Structure
