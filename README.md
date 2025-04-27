@@ -1,4 +1,4 @@
-# XMTP Mini-App Debugger
+# XMTP mini-app examples
 
 This repository provides a debugging toolkit for mini-apps built with the [XMTP](https://docs.xmtp.org/) network and Farcaster Frames.
 
@@ -59,9 +59,10 @@ NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 
 ## Debugging Examples
 
-- [Wallet Connection](./frontend/src/examples/WalletConnection.tsx)
-- [Connection Info](./frontend/src/examples/ConnectionInfo.tsx)
-- [Group Management](./frontend/src/examples/GroupManagement.tsx) 
+- [Wallet Connection](./frontend/src/examples/WalletConnection.tsx): Connect a wallet to the mini-app.
+- [Connection Info](./frontend/src/examples/ConnectionInfo.tsx): Display information about the current connection.
+- [Group Management](./frontend/src/examples/GroupManagement.tsx): Join a group chat and send messages through the XMTP express backend.
+- [Bot Chat](./frontend/src/examples/BotChat.tsx): A simple example of a bot chat using the XMTP client.
 
 ## Deployment of Your Debugged App
 
