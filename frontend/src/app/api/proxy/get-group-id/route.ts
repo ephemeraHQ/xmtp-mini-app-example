@@ -18,24 +18,42 @@ export async function GET(request: Request) {
     }
 
     const requestUrl = `${env.BACKEND_URL}/api/xmtp/get-group-id?inboxId=${inboxId}`;
+    console.log(`Requesting group data from backend: ${requestUrl}`);
 
-    const response = await ky.get(requestUrl, {
-      headers: {
-        "x-api-secret": env.API_SECRET_KEY,
-      },
-      timeout: 10000, // 10s timeout
-      cache: "no-store", // Disable caching
-    });
+    try {
+      const response = await ky.get(requestUrl, {
+        headers: {
+          "x-api-secret": env.API_SECRET_KEY,
+        },
+        timeout: 10000, // 10s timeout
+        cache: "no-store", // Disable caching
+        retry: 0, // Disable retries to prevent spamming the backend
+      });
 
-    // Log the raw response for debugging
-    const rawResponseText = await response.clone().text();
-    console.log("🔍 Raw response text:", rawResponseText);
-
-    const data = await response.json();
-
-    return NextResponse.json(data);
+      // Log the raw response for debugging
+      const rawResponseText = await response.clone().text();
+      console.log(`Backend response received, status: ${response.status}`);
+      
+      try {
+        const data = await response.json();
+        return NextResponse.json(data);
+      } catch (jsonError) {
+        console.error("Error parsing JSON response:", jsonError);
+        console.error("Raw response text:", rawResponseText);
+        return NextResponse.json(
+          { error: "Invalid response from backend" },
+          { status: 502 },
+        );
+      }
+    } catch (fetchError) {
+      console.error("Error communicating with backend");
+      return NextResponse.json(
+        { error: "Backend service unavailable" },
+        { status: 503 },
+      );
+    }
   } catch (error) {
-    console.error("Error fetching group ID:", (error as Error).message);
+    console.error("Error in get-group-id proxy:", (error as Error).message);
     return NextResponse.json(
       { error: "Failed to fetch group ID" },
       { status: 500 },

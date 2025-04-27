@@ -240,7 +240,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
     };
     
     checkExistingConnection();
-  }, []);
+  }, [client]);
 
   // Log state changes
   useEffect(() => {

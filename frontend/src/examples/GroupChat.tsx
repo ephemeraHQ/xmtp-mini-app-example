@@ -16,6 +16,7 @@ export default function GroupManagement() {
   const [groupMemberCount, setGroupMemberCount] = useState(0);
   const [groupMessageCount, setGroupMessageCount] = useState(0);
   const [latestMessage, setLatestMessage] = useState<string | null>(null);
+  const [backendStatus, setBackendStatus] = useState<"unknown" | "online" | "offline">("unknown");
 
   // Message sending state
   const [message, setMessage] = useState("");
@@ -27,7 +28,7 @@ export default function GroupManagement() {
     setGroupConversation(groupConversation);
   }, [groupConversation, setGroupConversation]);
 
-  // Fetch group ID and check membership
+  // Fetch group data and check membership
   const fetchGroupData = useCallback(async () => {
     if (!client || !client.inboxId || isRefreshing) return;
     
@@ -39,7 +40,19 @@ export default function GroupManagement() {
       
       // Get group info from API
       const response = await fetch(`/api/proxy/get-group-id?inboxId=${client.inboxId}`);
+      
+      if (!response.ok) {
+        // If we receive a 500 error, mark the backend as offline to prevent continuous retries
+        if (response.status === 500) {
+          setBackendStatus("offline");
+          throw new Error(`Backend error: ${response.status}`);
+        }
+        throw new Error(`Backend error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      
+      setBackendStatus("online");
       
       const groupId = data.groupId;
       const isMember = data.isMember;
@@ -85,17 +98,18 @@ export default function GroupManagement() {
       }
     } catch (error) {
       console.error("Error fetching group data:", error);
+      setBackendStatus("offline");
     } finally {
       setIsRefreshing(false);
     }
   }, [client, conversations, isRefreshing, setConversations]);
 
-  // Fetch group data when client is available
+  // Fetch group data when client is available - we stop retrying if backend is down
   useEffect(() => {
-    if (client && client.inboxId) {
+    if (client && client.inboxId && backendStatus !== "offline") {
       fetchGroupData();
     }
-  }, [client?.inboxId]);
+  }, [client, client?.inboxId, fetchGroupData, backendStatus]); // Added backendStatus to dependencies
 
   // Join group handler
   const handleJoinGroup = async () => {
@@ -110,7 +124,13 @@ export default function GroupManagement() {
         body: JSON.stringify({ inboxId: client.inboxId }),
       });
       
+      if (!response.ok) {
+        setBackendStatus("offline");
+        throw new Error(`Backend error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      setBackendStatus("online");
 
       if (data.success) {
         setIsGroupJoined(true);
@@ -143,7 +163,13 @@ export default function GroupManagement() {
         body: JSON.stringify({ inboxId: client.inboxId }),
       });
       
+      if (!response.ok) {
+        setBackendStatus("offline");
+        throw new Error(`Backend error: ${response.status}`);
+      }
+      
       const data = await response.json();
+      setBackendStatus("online");
 
       if (data.success) {
         // Update state after leaving
@@ -168,7 +194,28 @@ export default function GroupManagement() {
   const handleManualRefresh = async () => {
     if (!client) return;
     
-    await fetchGroupData();
+    setIsRefreshing(true);
+    
+    try {
+      // First check if backend is responsive
+      const healthCheck = await fetch(`/api/proxy/get-group-id?inboxId=${client.inboxId}`);
+      
+      if (!healthCheck.ok) {
+        if (healthCheck.status === 500) {
+          setBackendStatus("offline");
+          throw new Error(`Backend error: ${healthCheck.status}`);
+        }
+      } else {
+        setBackendStatus("online");
+        // Continue with regular refresh
+        await fetchGroupData();
+      }
+    } catch (error) {
+      console.error("Error checking backend:", error);
+      setBackendStatus("offline");
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Message sending handler
@@ -205,9 +252,9 @@ export default function GroupManagement() {
             size="sm"
             variant="outline" 
             onClick={handleManualRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || !client}
             className="h-7 text-xs">
-            {isRefreshing ? "..." : "Refresh"}
+            {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
         <div className="text-gray-400 text-xs mt-1">
@@ -215,6 +262,8 @@ export default function GroupManagement() {
             <span className="text-gray-500">Status:</span> 
             {!client ? (
               <span className="text-yellow-500"> Not connected</span>
+            ) : backendStatus === "offline" ? (
+              <span className="text-red-500"> Backend is down</span>
             ) : isRefreshing ? (
               <span className="text-yellow-500"> Refreshing...</span>
             ) : joining ? (
@@ -225,6 +274,7 @@ export default function GroupManagement() {
               <span className="text-red-500"> Not a member</span>
             )}
           </p>
+         
           {isGroupJoined && groupConversation && (
             <>
               <p><span className="text-gray-500">Group Name:</span> {groupConversation.name || "XMTP Group"}</p>
@@ -246,7 +296,7 @@ export default function GroupManagement() {
           className="w-full mt-3"
           size="sm"
           onClick={isGroupJoined ? handleLeaveGroup : handleJoinGroup}
-          disabled={joining || isRefreshing || !client}>
+          disabled={joining || isRefreshing || !client || backendStatus === "offline"}>
           {joining ? "Processing..." : isRefreshing ? "Refreshing..." : isGroupJoined ? "Leave Group" : "Join Group Chat"}
         </Button>
       </div>

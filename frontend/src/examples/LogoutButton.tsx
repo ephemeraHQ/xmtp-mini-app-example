@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDisconnect } from "wagmi";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
-import { clearWagmiCookies } from "@/lib/wagmi";
+import { clearWagmiCookies } from "@/providers/wagmi";
 
 // Key XMTP storage keys
 const XMTP_KEYS = ["xmtp:hasConnected", "xmtp:connectionType", "xmtp:ephemeralKey"];

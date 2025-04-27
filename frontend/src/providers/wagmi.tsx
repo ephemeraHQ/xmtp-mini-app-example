@@ -1,5 +1,10 @@
+"use client";
+
 import { base, mainnet } from "viem/chains";
-import { cookieStorage, createConfig, createStorage, http } from "wagmi";
+import { cookieStorage, createConfig, createStorage, http, cookieToInitialState, type Config } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
+import React from "react";
 
 const chains = [mainnet, base] as const;
 
@@ -32,3 +37,25 @@ export const wagmiConfig = createConfig({
   // Remove the connector for now to avoid build errors
   connectors: [],
 });
+
+// Create query client for React Query
+const queryClient = new QueryClient();
+
+// WagmiProvider component
+interface CustomWagmiProviderProps {
+  children: React.ReactNode;
+  cookies: string | null;
+}
+
+export const CustomWagmiProvider = ({
+  children,
+  cookies,
+}: CustomWagmiProviderProps) => {
+  const initialState = cookieToInitialState(wagmiConfig as Config, cookies);
+
+  return (
+    <WagmiProvider config={wagmiConfig as Config} initialState={initialState}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </WagmiProvider>
+  );
+}; 

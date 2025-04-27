@@ -62,8 +62,8 @@ export default function WalletConnection() {
     }
   };
 
-  // Helper function to safely request accounts
-  const safeRequestAccounts = async () => {
+  // Helper function to safely request accounts - wrapped in useCallback
+  const safeRequestAccounts = useCallback(async () => {
     if (checkConnectionPending() || !window.ethereum) {
       return null;
     }
@@ -89,7 +89,7 @@ export default function WalletConnection() {
     } finally {
       setConnectionPending(false);
     }
-  };
+  }, []);
 
   // Load saved connection on mount
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function WalletConnection() {
         return () => clearTimeout(timer);
       }
     }
-  }, [connect, initializeXmtp]);
+  }, [connect, initializeXmtp, safeRequestAccounts]);
 
   // Connect with EOA wallet (MetaMask)
   const connectWithEOA = useCallback(() => {
@@ -173,7 +173,7 @@ export default function WalletConnection() {
       localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
       connect({ connector: injected() });
     }
-  }, [connect, walletData, initializeXmtp]);
+  }, [connect, walletData, initializeXmtp, safeRequestAccounts]);
 
   // Connect with Ephemeral Wallet
   const connectWithEphemeral = useCallback(() => {
