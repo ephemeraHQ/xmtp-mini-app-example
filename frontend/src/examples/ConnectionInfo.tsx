@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { useXMTP } from "@/context/xmtp-context";
+import { useBackendHealth } from "@/context/backend-health-context";
 import { env } from "@/lib/env";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -16,6 +17,7 @@ interface ConnectionInfoProps {
 
 export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoProps) {
   const { client, conversations } = useXMTP();
+  const { backendStatus } = useBackendHealth();
   const { isConnected, address } = useAccount();
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
@@ -87,6 +89,16 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
         {client && <p><span className="text-gray-500">Environment:</span> {env.NEXT_PUBLIC_XMTP_ENV}</p>}
         {client && <p><span className="text-gray-500">Inbox ID:</span> {client.inboxId ? `${client.inboxId.slice(0, 6)}...${client.inboxId.slice(-6)}` : "None"}</p>}
         {client && <p><span className="text-gray-500">Conversations:</span> {conversations.length}</p>}
+        <p>
+          <span className="text-gray-500">Backend:</span>{" "}
+          {backendStatus === "online" ? (
+            <span className="text-green-500">Online</span>
+          ) : backendStatus === "offline" ? (
+            <span className="text-red-500">Offline</span>
+          ) : (
+            <span className="text-yellow-500">Checking...</span>
+          )}
+        </p>
       </div>
     </div>
   );

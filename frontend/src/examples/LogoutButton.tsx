@@ -45,9 +45,6 @@ export default function LogoutButton() {
       disconnectXmtp();
       disconnect();
 
-      // Redirect to home
-      window.location.href = "/";
-      
     } catch (error) {
       console.error("Logout error:", error);
       

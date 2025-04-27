@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { FrameProvider } from "@/context/frame-context";
 import { XMTPProvider } from "@/context/xmtp-context";
+import { BackendHealthProvider } from "@/context/backend-health-context";
 import { CustomWagmiProvider } from "@/providers/wagmi";
 
 const ErudaProvider = dynamic(
@@ -23,7 +24,9 @@ export const Providers = ({
     <ErudaProvider>
       <FrameProvider>
         <CustomWagmiProvider cookies={cookies}>
-          <XMTPProvider>{children}</XMTPProvider>
+          <BackendHealthProvider>
+            <XMTPProvider>{children}</XMTPProvider>
+          </BackendHealthProvider>
         </CustomWagmiProvider>
       </FrameProvider>
     </ErudaProvider>

@@ -13,12 +13,6 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
   ),
-  other: {
-    "Cache-Control":
-      "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
-    Pragma: "no-cache",
-    Expires: "0",
-  },
 };
 
 export const revalidate = 0;

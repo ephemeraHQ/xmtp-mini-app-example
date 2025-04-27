@@ -9,9 +9,6 @@ import ConnectionInfo from "@/examples/ConnectionInfo";
 import WalletConnection from "@/examples/WalletConnection";
 import GroupChat from "@/examples/GroupChat";
 
-// Force dynamic rendering with no caching
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
 
 export default function ExamplePage() {
   const { client, initializing, disconnect } = useXMTP();

@@ -4,9 +4,11 @@ import { useCallback, useState, useEffect } from "react";
 import { Group } from "@xmtp/browser-sdk";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
+import { useBackendHealth } from "@/context/backend-health-context";
 
 export default function GroupManagement() {
   const { client, conversations, setConversations, setGroupConversation } = useXMTP();
+  const { backendStatus } = useBackendHealth();
   
   // Group Chat State
   const [joining, setJoining] = useState(false);
@@ -16,7 +18,6 @@ export default function GroupManagement() {
   const [groupMemberCount, setGroupMemberCount] = useState(0);
   const [groupMessageCount, setGroupMessageCount] = useState(0);
   const [latestMessage, setLatestMessage] = useState<string | null>(null);
-  const [backendStatus, setBackendStatus] = useState<"unknown" | "online" | "offline">("unknown");
 
   // Message sending state
   const [message, setMessage] = useState("");
@@ -42,17 +43,10 @@ export default function GroupManagement() {
       const response = await fetch(`/api/proxy/get-group-id?inboxId=${client.inboxId}`);
       
       if (!response.ok) {
-        // If we receive a 500 error, mark the backend as offline to prevent continuous retries
-        if (response.status === 500) {
-          setBackendStatus("offline");
-          throw new Error(`Backend error: ${response.status}`);
-        }
         throw new Error(`Backend error: ${response.status}`);
       }
       
       const data = await response.json();
-      
-      setBackendStatus("online");
       
       const groupId = data.groupId;
       const isMember = data.isMember;
@@ -98,7 +92,6 @@ export default function GroupManagement() {
       }
     } catch (error) {
       console.error("Error fetching group data:", error);
-      setBackendStatus("offline");
     } finally {
       setIsRefreshing(false);
     }
@@ -109,7 +102,7 @@ export default function GroupManagement() {
     if (client && client.inboxId && backendStatus !== "offline") {
       fetchGroupData();
     }
-  }, [client, client?.inboxId, fetchGroupData, backendStatus]); // Added backendStatus to dependencies
+  }, [client, client?.inboxId, fetchGroupData, backendStatus]);
 
   // Join group handler
   const handleJoinGroup = async () => {
@@ -125,12 +118,10 @@ export default function GroupManagement() {
       });
       
       if (!response.ok) {
-        setBackendStatus("offline");
         throw new Error(`Backend error: ${response.status}`);
       }
       
       const data = await response.json();
-      setBackendStatus("online");
 
       if (data.success) {
         setIsGroupJoined(true);
@@ -164,12 +155,10 @@ export default function GroupManagement() {
       });
       
       if (!response.ok) {
-        setBackendStatus("offline");
         throw new Error(`Backend error: ${response.status}`);
       }
       
       const data = await response.json();
-      setBackendStatus("online");
 
       if (data.success) {
         // Update state after leaving
@@ -197,22 +186,12 @@ export default function GroupManagement() {
     setIsRefreshing(true);
     
     try {
-      // First check if backend is responsive
-      const healthCheck = await fetch(`/api/proxy/get-group-id?inboxId=${client.inboxId}`);
-      
-      if (!healthCheck.ok) {
-        if (healthCheck.status === 500) {
-          setBackendStatus("offline");
-          throw new Error(`Backend error: ${healthCheck.status}`);
-        }
-      } else {
-        setBackendStatus("online");
-        // Continue with regular refresh
+      // Continue with regular refresh if backend is available
+      if (backendStatus === "online") {
         await fetchGroupData();
       }
     } catch (error) {
-      console.error("Error checking backend:", error);
-      setBackendStatus("offline");
+      console.error("Error refreshing:", error);
     } finally {
       setIsRefreshing(false);
     }
