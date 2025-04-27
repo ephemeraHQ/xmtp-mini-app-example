@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import Image from "next/image";
 import Link from "next/link";
+import { useEruda } from "@/providers/eruda";
 
 // Constants for local storage keys
 const XMTP_HAS_CONNECTED_KEY = "xmtp:hasConnected";
@@ -13,6 +14,9 @@ interface HeaderProps {
 }
 
 export function Header({ onLogout, isConnected }: HeaderProps) {
+  // Use the Eruda context to access toggle functionality
+  const { isVisible, toggleEruda } = useEruda();
+
   // The logout handler that will be called when the button is clicked
   const handleLogout = async () => {
     if (!onLogout) return;
@@ -59,17 +63,28 @@ export function Header({ onLogout, isConnected }: HeaderProps) {
     <header className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
       <Link href="/" className="flex items-center gap-2">
        
-        <span className="text-white font-medium">xmtp mini-app examples</span>
+        <span className="text-white font-medium">mini-app examples</span>
       </Link>
       
-      {isConnected && onLogout && (
-        <button 
-          onClick={handleLogout}
-          className="text-sm text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded-md bg-gray-900"
-        >
-          Logout
-        </button>
-      )}
+      <div className="flex items-center space-x-2">
+        {env.NEXT_PUBLIC_APP_ENV !== "production" && (
+          <button 
+            onClick={toggleEruda}
+            className="text-sm text-blue-400 hover:text-blue-300 transition-colors px-2 py-0.5 rounded-md bg-gray-900"
+          >
+            Console
+          </button>
+        )}
+        
+        {isConnected && onLogout && (
+          <button 
+            onClick={handleLogout}
+            className="text-sm text-red-400 hover:text-red-300 transition-colors px-3 py-1 rounded-md bg-gray-900"
+          >
+            Logout
+          </button>
+        )}
+      </div>
     </header>
   );
 } 

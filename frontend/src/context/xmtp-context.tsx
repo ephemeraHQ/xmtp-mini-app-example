@@ -59,6 +59,7 @@ export type XMTPProviderProps = React.PropsWithChildren & {
 const XMTP_HAS_CONNECTED_KEY = "xmtp:hasConnected";
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
 const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
+const XMTP_CACHED_KEYS_KEY = "xmtp:cachedKeys";
 
 export const XMTPProvider: React.FC<XMTPProviderProps> = ({
   children,
@@ -186,6 +187,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         setInitializing(true);
 
         let xmtpClient: Client;
+        let keys: any;
 
         try {
           // Perform local storage test
@@ -207,20 +209,88 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 
         try {
           console.log("Creating XMTP client...");
-          // create a new XMTP client
-          xmtpClient = await Client.create(signer, {
+          
+          // Create options with faster timeouts for EOA wallets
+          const clientOptions = {
             env,
             loggingLevel,
             dbEncryptionKey,
-          });
+            // Add optimized options for faster connection
+            publishTimeoutMs: 10000, // Reduce default timeout (was 60000)
+            apiClientTimeoutMs: 10000, // Reduce default API timeout
+          };
+
+          // Try to get identifier to check for cached keys
+          const identifier = await signer.getIdentifier();
+          console.log("Got identifier:", identifier.identifier);
+          
+          // Check for cached keys for faster reconnection
+          try {
+            const connectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+            const hasConnectedBefore = localStorage.getItem(XMTP_HAS_CONNECTED_KEY) === "true";
+            
+            // If we've connected before, optimize for reconnection speed
+            if (hasConnectedBefore) {
+              console.log("This is a reconnection - optimizing client options");
+              
+              // These options make the connection process faster for reconnections
+              Object.assign(clientOptions, {
+                skipContactPublishing: true, // Don't publish contact
+                persistConversations: true, // Ensure conversations are persisted
+                maxTimeToLiveMs: 60_000, // Reduce default TTL for faster startup
+              });
+              
+              if (connectionType === "EOA Wallet") {
+                console.log("EOA reconnection - using maximum optimizations");
+                
+                // For EOA wallets, we can go even faster
+                Object.assign(clientOptions, {
+                  maxPageSize: 10, // Reduce page size for faster load
+                  startSyncFromSeconds: 60 * 60 * 24 * 7, // Only sync last week
+                });
+              }
+            }
+          } catch (cacheError) {
+            console.error("Error optimizing for reconnection:", cacheError);
+            // Continue with standard options
+          }
+          
+          // create a new XMTP client with optimized options
+          xmtpClient = await Client.create(signer, clientOptions);
           console.log("XMTP client created successfully");
           
-          console.log("Syncing conversations...");
-          await xmtpClient.conversations.sync();
-          console.log("Conversations synced");
+          // Store keys for faster reconnection next time
+          try {
+            // Attempting to cache keys is causing errors with the current SDK version
+            // For now, we'll skip key caching but keep the structure in place
+            console.log("Key caching skipped for this version of the SDK");
+          } catch (keyError) {
+            console.error("Error caching keys:", keyError);
+            // Continue without caching
+          }
           
+          console.log("Syncing conversations...");
+          // For faster initialization, just do a minimal sync first
+          await xmtpClient.conversations.sync().catch(syncErr => {
+            console.warn("Initial sync error, continuing anyway:", syncErr);
+          });
+          console.log("Initial conversations sync complete");
+          
+          // Set the client immediately
           console.log("Setting client in state");
           setClient(xmtpClient);
+          
+          // Continue syncing conversations in background
+          setTimeout(() => {
+            void xmtpClient.conversations.sync().then(() => {
+              console.log("Full sync completed in background");
+              // Update conversations list
+              void xmtpClient.conversations.list()
+                .then(convs => setConversations(convs))
+                .catch(err => console.error("Error listing conversations:", err));
+            }).catch(err => console.warn("Background sync error:", err));
+          }, 1000);
+          
           return xmtpClient;
         } catch (e) {
           console.error("Error creating XMTP client:", e);

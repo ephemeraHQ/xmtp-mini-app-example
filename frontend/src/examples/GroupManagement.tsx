@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Group } from "@xmtp/browser-sdk";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
@@ -16,6 +16,7 @@ export default function GroupManagement() {
   const [groupConversation, setGroupConversation] = useState<Group | null>(null);
   const [groupMemberCount, setGroupMemberCount] = useState(0);
   const [groupMessageCount, setGroupMessageCount] = useState(0);
+  const didInitialFetch = useRef(false);
 
   // Fetch group ID and check membership
   const handleFetchGroupId = useCallback(async () => {
@@ -32,6 +33,11 @@ export default function GroupManagement() {
     try {
       setIsRefreshing(true);
       console.log("Fetching group ID for inbox:", client.inboxId);
+      
+      // Force sync conversations first to ensure we have the latest data
+      // This helps with EOA wallets that might not properly sync on initialization
+      console.log("Force syncing conversations before fetching group data");
+      await client.conversations.sync();
       
       // This API endpoint would return group info from your backend
       const response = await fetch(
@@ -133,6 +139,43 @@ export default function GroupManagement() {
       setIsRefreshing(false);
     }
   }, [client, conversations, isRefreshing, setConversations]);
+
+  // Effect to fetch group status on component mount or when client changes
+  useEffect(() => {
+    if (client && client.inboxId && !isRefreshing && !didInitialFetch.current) {
+      // Check the connection type to add additional synchronization for EOA wallets
+      try {
+        const connectionType = localStorage.getItem("xmtp:connectionType");
+        console.log(`Initializing group data for ${connectionType || "unknown"} wallet type`);
+        
+        // For EOA wallets, ensure we sync one more time before first fetch
+        if (connectionType === "EOA Wallet") {
+          console.log("EOA wallet detected, ensuring sync is complete");
+          // Set the ref first to prevent multiple initialization attempts
+          didInitialFetch.current = true;
+          
+          // Sync the conversations first, then fetch group data
+          void client.conversations.sync().then(() => {
+            console.log("Initial EOA sync complete, now fetching group data");
+            handleFetchGroupId();
+          }).catch(error => {
+            console.error("Error in initial EOA sync:", error);
+            // Still try to fetch even if sync fails
+            handleFetchGroupId();
+          });
+        } else {
+          // For other wallet types, proceed as normal
+          didInitialFetch.current = true;
+          handleFetchGroupId();
+        }
+      } catch (error) {
+        // If localStorage access fails, fall back to normal initialization
+        console.error("Error checking wallet type:", error);
+        didInitialFetch.current = true;
+        handleFetchGroupId();
+      }
+    }
+  }, [client, handleFetchGroupId, isRefreshing]);
 
   // Leave group handler
   const handleLeaveGroup = async () => {
@@ -318,7 +361,7 @@ export default function GroupManagement() {
             : isRefreshing
               ? "Refreshing..."
               : isGroupJoined 
-                ? `Leave Group${groupConversation ? `: ${groupConversation.name || ""}` : ""}` 
+                ? `Leave Group` 
                 : "Join Group Chat"}
       </Button>
       

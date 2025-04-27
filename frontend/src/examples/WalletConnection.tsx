@@ -24,10 +24,33 @@ export default function WalletConnection() {
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [attemptedAutoConnect, setAttemptedAutoConnect] = useState(false);
+  const [preconnected, setPreconnected] = useState(false);
 
-  // Initialize XMTP client with wallet signer
+  // Show preconnected state immediately based on localStorage
+  useEffect(() => {
+    try {
+      const savedType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+      if (savedType) {
+        setPreconnected(true);
+        setConnectionType(savedType);
+      }
+    } catch (e) {
+      console.error("Error reading connection type:", e);
+    }
+  }, []);
+
+  // Initialize XMTP client with wallet signer - optimize for speed
   const initializeXmtp = useCallback((signer: any) => {
     console.log("Initializing XMTP with signer");
+    
+    // Set a timeout to ensure we don't leave users waiting too long
+    const timeoutId = setTimeout(() => {
+      if (initializing) {
+        console.log("XMTP initialization taking too long, setting attempted flag");
+        setAttemptedAutoConnect(true);
+        setErrorMessage("Connection is taking longer than expected. Try again if needed.");
+      }
+    }, 5000); // Reduce from 10 seconds to 5 seconds
     
     void initialize({
       dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
@@ -36,9 +59,11 @@ export default function WalletConnection() {
       signer,
     }).then((result) => {
       console.log("XMTP initialization result:", !!result);
+      clearTimeout(timeoutId);
       setAttemptedAutoConnect(true);
     }).catch(error => {
       console.error("Failed to initialize XMTP client:", error);
+      clearTimeout(timeoutId);
       setErrorMessage("Failed to initialize XMTP client");
       // Clear the stored connection type to prevent getting stuck
       localStorage.removeItem(XMTP_CONNECTION_TYPE_KEY);
@@ -47,7 +72,7 @@ export default function WalletConnection() {
       }
       setAttemptedAutoConnect(true);
     });
-  }, [initialize, connectionType]);
+  }, [initialize, connectionType, initializing]);
 
   // Immediately try to reconnect with ephemeral wallet on mount
   useEffect(() => {
@@ -248,7 +273,7 @@ export default function WalletConnection() {
     };
   }, [client, initializeXmtp, attemptedAutoConnect, initializing]);
   
-  // Handle wallet reconnection
+  // Handle wallet reconnection - optimize for speed
   useEffect(() => {
     const connectWithWallet = async () => {
       console.log("Checking wallet reconnection...", {
@@ -258,24 +283,52 @@ export default function WalletConnection() {
         attemptedAutoConnect
       });
       
-      if (client || !isConnected || !walletData || !attemptedAutoConnect) {
-        console.log("Skipping wallet reconnection");
+      // For EOA wallets, we don't need to wait for attemptedAutoConnect
+      // This ensures we instantly reconnect when wallet is available
+      const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+      
+      // Skip if already connected with a client
+      if (client) {
+        console.log("Already connected with client, skipping wallet reconnection");
         return;
       }
       
-      const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+      // Check if we have wallet data and are connected
+      if (!isConnected || !walletData) {
+        console.log("Missing wallet connection data, cannot reconnect yet");
+        return;
+      }
+      
       console.log("Reconnecting wallet with saved type:", savedConnectionType);
       
       if (savedConnectionType === "EOA Wallet") {
-        console.log("Reconnecting with EOA wallet");
+        console.log("Reconnecting with EOA wallet immediately");
         setConnectionType("EOA Wallet");
         try {
-          initializeXmtp(createEOASigner(walletData.account.address, walletData));
+          console.log("Creating EOA signer with address:", walletData.account.address);
+          
+          // Use a more direct approach for EOA wallets to speed up connection
+          const signer = createEOASigner(walletData.account.address, walletData);
+          
+          // Clear any existing XMTP cached data to avoid potential conflicts
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith("xmtp.") && key.includes(walletData.account.address.toLowerCase())) {
+                localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {
+            console.log("Could not clear cached XMTP data:", e);
+          }
+          
+          // Initialize with a shorter timeout
+          initializeXmtp(signer);
         } catch (error) {
           console.error("Failed to reconnect with EOA wallet:", error);
           localStorage.removeItem(XMTP_CONNECTION_TYPE_KEY);
         }
-      } else if (savedConnectionType === "Smart Contract Wallet") {
+      } else if (savedConnectionType === "Smart Contract Wallet" && attemptedAutoConnect) {
         console.log("Reconnecting with Smart Contract wallet");
         setConnectionType("Smart Contract Wallet");
         try {
@@ -308,19 +361,39 @@ export default function WalletConnection() {
       setConnectionType("EOA Wallet");
       setErrorMessage(null);
       
-      console.log("Connecting with injected connector");
-      connect({ connector: injected() });
-      
-      // Save connection type
+      // Save connection type immediately to improve persistence
       localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
       console.log("Saved EOA wallet connection type to localStorage");
       
-      // In a real implementation, we would initialize after wallet connection
+      // Clear any existing XMTP cached data for cleaner reconnection
+      try {
+        console.log("Clearing any existing XMTP data for clean connection");
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("xmtp.")) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (e) {
+        console.log("Error clearing cached data:", e);
+      }
+      
+      console.log("Connecting with injected connector");
+      connect({ connector: injected() });
+      
+      // If wallet data is already available, initialize XMTP right away
       if (walletData) {
-        console.log("Wallet data available, initializing XMTP");
-        initializeXmtp(createEOASigner(walletData.account.address, walletData));
+        console.log("Wallet data available, initializing XMTP with address:", walletData.account.address);
+        try {
+          const signer = createEOASigner(walletData.account.address, walletData);
+          initializeXmtp(signer);
+        } catch (initError) {
+          console.error("Error initializing with existing wallet data:", initError);
+          // We'll keep the connection type in localStorage since we're connected to the wallet
+          // The reconnection logic will try again
+        }
       } else {
-        console.log("No wallet data available yet");
+        console.log("No wallet data available yet, waiting for connection");
       }
     } catch (error) {
       console.error("Error connecting with EOA:", error);
@@ -412,6 +485,26 @@ export default function WalletConnection() {
     }
   }, [initializeXmtp, initializing, connectionType]);
 
+  // Connect automatically when wallet data becomes available after user connects
+  useEffect(() => {
+    // Skip if already connected or no wallet data yet
+    if (client || !walletData || !isConnected) {
+      return;
+    }
+    
+    // Check if we're trying to connect with EOA wallet
+    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+    if (savedConnectionType === "EOA Wallet") {
+      console.log("Wallet data became available, auto-initializing XMTP with EOA wallet");
+      try {
+        const signer = createEOASigner(walletData.account.address, walletData);
+        initializeXmtp(signer);
+      } catch (error) {
+        console.error("Failed to auto-initialize with EOA wallet:", error);
+      }
+    }
+  }, [walletData, isConnected, client, initializeXmtp]);
+
   return (
     <div className="w-full flex flex-col gap-4">
       <div className="w-full flex flex-col gap-3 mt-2">
@@ -420,7 +513,11 @@ export default function WalletConnection() {
           size="lg" 
           onClick={connectWithEOA}
           disabled={initializing}>
-          Connect with EOA Wallet
+          {initializing && connectionType === "EOA Wallet" 
+            ? "Connecting EOA Wallet..." 
+            : preconnected && connectionType === "EOA Wallet" && !client
+              ? "Reconnecting EOA Wallet..."
+              : "Connect with EOA Wallet"}
         </Button>
         
         <Button 
@@ -428,7 +525,11 @@ export default function WalletConnection() {
           size="lg" 
           onClick={connectWithEphemeral}
           disabled={initializing}>
-          Connect with Ephemeral Wallet
+          {initializing && connectionType === "Ephemeral Wallet" 
+            ? "Connecting Ephemeral Wallet..." 
+            : preconnected && connectionType === "Ephemeral Wallet" && !client
+              ? "Reconnecting Ephemeral Wallet..."
+              : "Connect with Ephemeral Wallet"}
         </Button>
         
         <Button 
@@ -436,12 +537,16 @@ export default function WalletConnection() {
           size="lg" 
           onClick={connectWithSCW}
           disabled={initializing}>
-          Connect with Smart Contract Wallet
+          {initializing && connectionType === "Smart Contract Wallet" 
+            ? "Connecting Smart Contract Wallet..." 
+            : preconnected && connectionType === "Smart Contract Wallet" && !client
+              ? "Reconnecting Smart Contract Wallet..."
+              : "Connect with Smart Contract Wallet"}
         </Button>
       </div>
       
       {/* Connection Status */}
-      {connectionType && (
+      {(connectionType || preconnected) && (
         <div className="w-full bg-gray-900 p-3 rounded-md">
           <h2 className="text-white text-sm font-medium">Connection Status</h2>
           <div className="text-gray-400 text-xs mt-1">
@@ -449,7 +554,22 @@ export default function WalletConnection() {
             {connectionType === "Ephemeral Wallet" && ephemeralAddress && (
               <p><span className="text-gray-500">Address:</span> {ephemeralAddress}</p>
             )}
-            {initializing && <p className="text-yellow-500">Connecting to XMTP...</p>}
+            {connectionType === "EOA Wallet" && walletData && (
+              <p><span className="text-gray-500">Address:</span> {walletData.account.address}</p>
+            )}
+            {(initializing || (preconnected && !client)) && 
+              <div>
+                <p className="text-yellow-500">
+                  {preconnected && !initializing 
+                    ? "Reconnecting..." 
+                    : "Connecting to XMTP..."}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  This may take a few seconds on first connection
+                </p>
+              </div>
+            }
+            {client && <p className="text-green-500">Connected</p>}
           </div>
         </div>
       )}

@@ -8,7 +8,6 @@ import { useXMTP } from "@/context/xmtp-context";
 import ConnectionInfo from "@/examples/ConnectionInfo";
 import WalletConnection from "@/examples/WalletConnection";
 import GroupManagement from "@/examples/GroupManagement";
-import BackendInfo from "@/examples/BackendInfo";
 
 // Force dynamic rendering with no caching
 export const dynamic = "force-dynamic";
@@ -84,10 +83,6 @@ export default function ExamplePage() {
               <GroupManagement />
             )}
             
-            {/* Backend Info (show when connected) */}
-            {client && (
-              <BackendInfo />
-            )}
           </div>
         )}
       </div>
