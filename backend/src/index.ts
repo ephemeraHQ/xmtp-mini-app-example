@@ -53,9 +53,9 @@ const initializeXmtpClient = async () => {
     conversation = await xmtpClient.conversations.newGroup(defaultInboxes);
     console.log("New group created:", conversation.id);
     GROUP_ID = conversation.id;
-    await (conversation as Group).updateName("XMTP Debugger");
     appendToEnv("GROUP_ID", GROUP_ID);
   }
+  await (conversation as Group).updateName("XMTP Debugger Group");
 
   if (!conversation) {
     console.error("Failed to initialize XMTP client");
@@ -248,6 +248,8 @@ app.get(
         console.log("🟡 Conversation synced");
 
         const groupMembers = await (conversation as Group).members();
+        const messages = await (conversation as Group).messages();
+        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
         const isMember = groupMembers.some(
           (member) => member.inboxId === req.query.inboxId,
@@ -256,8 +258,38 @@ app.get(
         console.log("🟣 isMember check complete:", isMember);
         console.log("🟣 Client inbox ID:", req.query.inboxId);
 
-        const responseObject = { groupId: process.env.GROUP_ID, isMember };
-        console.log("🔵 Full response object:", JSON.stringify(responseObject));
+        // Format member information for the response
+        const formattedMembers = groupMembers.map((member) => ({
+          inboxId: member.inboxId,
+          // Only include the first and last characters of the wallet address for privacy
+          displayInboxId: `${member.inboxId.slice(0, 6)}...${member.inboxId.slice(-6)}`,
+          isAdmin: (conversation as Group).isAdmin(member.inboxId),
+          isSuperAdmin: (conversation as Group).isSuperAdmin(member.inboxId),
+        }));
+
+        // Format last message for the response
+        const formattedLastMessage = lastMessage
+          ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              sentAt: lastMessage.sentAt,
+              // Use sender or inboxId depending on what's available
+              senderInboxId: lastMessage.senderInboxId || "unknown",
+              displaySenderId: lastMessage.senderInboxId
+                ? `${lastMessage.senderInboxId.slice(0, 6)}...${lastMessage.senderInboxId.slice(-6)}`
+                : "unknown",
+            }
+          : null;
+
+        const responseObject = {
+          groupId: process.env.GROUP_ID, 
+          groupName: (conversation as Group).name,
+          isMember,
+          memberCount: groupMembers.length,
+          members: formattedMembers,
+          lastMessage: formattedLastMessage,
+          messageCount: messages.length,
+        };
 
         res.json(responseObject);
         console.log("⚪ Response sent for get-group-id");
