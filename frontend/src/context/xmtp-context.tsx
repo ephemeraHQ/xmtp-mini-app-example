@@ -8,6 +8,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -65,6 +66,13 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
   // client is initializing
   const initializingRef = useRef(false);
 
+  // Reset conversations when client changes or becomes undefined
+  useEffect(() => {
+    if (!client) {
+      setConversations([]);
+    }
+  }, [client]);
+
   /**
    * Initialize an XMTP client
    */
@@ -94,6 +102,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 
         // Add this before initializing the XMTP client
         try {
+          // Perform local storage test
           localStorage.setItem("XMTP_TEST", "test");
           const test = localStorage.getItem("XMTP_TEST");
           if (test !== "test") {
@@ -102,6 +111,14 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
             console.log("localStorage working properly");
           }
           localStorage.removeItem("XMTP_TEST");
+
+          // Clear any XMTP-specific local storage items to prevent cached reconnections
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith("xmtp.")) {
+              localStorage.removeItem(key);
+            }
+          }
         } catch (error) {
           console.error("Error accessing localStorage:", error);
         }
@@ -142,8 +159,12 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
     if (client) {
       client.close();
       setClient(undefined);
+      // Also clear conversations when disconnecting
+      setConversations([]);
+      // Reset any error state
+      setError(null);
     }
-  }, [client, setClient]);
+  }, [client, setClient, setConversations]);
 
   // memo-ize the context value to prevent unnecessary re-renders
   const value = useMemo(

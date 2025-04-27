@@ -16,3 +16,19 @@ export const wagmiConfig = createConfig({
   },
   connectors: [farcasterFrame()],
 });
+
+// Function to clear wagmi cookies
+export const clearWagmiCookies = () => {
+  // wagmi uses these cookie keys
+  const wagmiCookieKeys = [
+    "wagmi.connected",
+    "wagmi.wallet",
+    "wagmi.store",
+    "wagmi.network",
+  ];
+
+  // Clear each wagmi cookie by setting expiration to past date
+  wagmiCookieKeys.forEach((key) => {
+    document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  });
+};

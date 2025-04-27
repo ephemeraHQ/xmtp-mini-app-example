@@ -22,6 +22,7 @@ import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 import { createSCWSigner } from "@/lib/utils/xmtp";
+import { clearWagmiCookies } from "@/lib/wagmi";
 
 export default function Page() {
   const { context, actions } = useFrame();
@@ -40,6 +41,9 @@ export default function Page() {
     "XMTP_LOGGING_LEVEL",
     "off",
   );
+
+  // Add reconnect disabled flag to prevent auto-reconnection after logout
+  const [reconnectDisabled, setReconnectDisabled] = useState(false);
 
   // Wallet State
   const { data: walletData } = useWalletClient();
@@ -71,7 +75,9 @@ export default function Page() {
 
   // Initialize XMTP client with wallet signer
   useEffect(() => {
-    if (walletData?.account) {
+    let mounted = true;
+
+    if (walletData?.account && !reconnectDisabled && mounted) {
       void initialize({
         dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
         env: env.NEXT_PUBLIC_XMTP_ENV,
@@ -83,7 +89,12 @@ export default function Page() {
         ),
       });
     }
-  }, [walletData, initialize, loggingLevel]);
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      mounted = false;
+    };
+  }, [walletData, initialize, loggingLevel, reconnectDisabled]);
 
   // Save the frame to the Farcaster context
   useEffect(() => {
@@ -237,11 +248,45 @@ export default function Page() {
   };
 
   // Logout handler
-  const handleLogout = () => {
-    disconnectXmtp();
-    disconnect();
-    setIsGroupJoined(false);
-    setGroupConversation(null);
+  const handleLogout = async () => {
+    // Set reconnect disabled to prevent auto-reconnection
+    setReconnectDisabled(true);
+
+    // Call logout API to clear auth cookie
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // Important to include cookies
+      });
+
+      // Clear any client-side storage that might be keeping auth state
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Clear wagmi cookies specifically
+      clearWagmiCookies();
+
+      // Also manually clear any other cookies from client side
+      document.cookie.split(";").forEach(function (c) {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // Disconnect from services
+      disconnectXmtp();
+      disconnect();
+      setIsGroupJoined(false);
+      setGroupConversation(null);
+
+      // Force a hard page refresh to reset all state completely
+      window.location.href = window.location.origin;
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   // Main button action based on joined state
@@ -297,7 +342,7 @@ export default function Page() {
                     className="w-full"
                     size="sm"
                     variant="destructive"
-                    onClick={handleLogout}>
+                    onClick={() => void handleLogout()}>
                     Logout
                   </Button>
                 </>
