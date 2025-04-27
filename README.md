@@ -26,7 +26,6 @@ This repository contains a full-stack mini-app example with both frontend and ba
 The frontend is a Next.js application with Farcaster Frames integration.
 
 ### Environment Variables
-
 Create a `.env.local` file in the `frontend` directory with the following variables:
 
 ```bash
