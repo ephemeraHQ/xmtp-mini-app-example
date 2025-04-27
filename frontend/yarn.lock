@@ -1698,15 +1698,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/localtunnel@npm:^2":
-  version: 2.0.4
-  resolution: "@types/localtunnel@npm:2.0.4"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10/53dd793a88bb9766e8812796913c8409f27ab56f0dbb7480278906150d8097e9e7d4c04466c252bde8545553bc322db4ae8c9563b94f217303b0648c5c4b3651
-  languageName: node
-  linkType: hard
-
 "@types/ms@npm:*":
   version: 2.1.0
   resolution: "@types/ms@npm:2.1.0"
@@ -1714,7 +1705,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:>=13.7.0":
+"@types/node@npm:>=13.7.0":
   version: 22.14.1
   resolution: "@types/node@npm:22.14.1"
   dependencies:
@@ -8230,7 +8221,6 @@ __metadata:
     "@radix-ui/react-slot": "npm:^1.1.2"
     "@t3-oss/env-nextjs": "npm:^0.12.0"
     "@tanstack/react-query": "npm:^5.69.0"
-    "@types/localtunnel": "npm:^2"
     "@types/node": "npm:^20"
     "@types/react": "npm:^18"
     "@types/react-dom": "npm:^18"
