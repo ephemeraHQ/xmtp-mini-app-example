@@ -9,10 +9,7 @@ export async function GET() {
     let backendStatus = "unknown";
     
     try {
-      const response = await ky.get(`${env.BACKEND_URL}/health`, {
-        timeout: 5000, // 5s timeout
-        retry: 0, // No retries
-      });
+      const response = await ky.get(`${env.BACKEND_URL}/api/xmtp/health`);
       
       if (response.ok) {
         backendStatus = "online";
@@ -20,7 +17,7 @@ export async function GET() {
         backendStatus = "offline";
       }
     } catch (error) {
-      console.error("Backend health check failed:", error);
+      console.error("Backend health check failed");
       backendStatus = "offline";
     }
     

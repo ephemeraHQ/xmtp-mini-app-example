@@ -5,6 +5,7 @@ import { useDisconnect } from "wagmi";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { clearWagmiCookies } from "@/providers/wagmi";
+import { useRouter } from "next/navigation";
 
 // Key XMTP storage keys
 const XMTP_KEYS = ["xmtp:hasConnected", "xmtp:connectionType", "xmtp:ephemeralKey"];
@@ -13,6 +14,7 @@ export default function LogoutButton() {
   const { disconnect: disconnectXmtp } = useXMTP();
   const { disconnect } = useDisconnect();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const router = useRouter();
 
   const handleLogout = async () => {
     try {
@@ -44,12 +46,13 @@ export default function LogoutButton() {
       // Disconnect services
       disconnectXmtp();
       disconnect();
+      
+      // Explicitly navigate to home page
+      router.push("/");
 
     } catch (error) {
       console.error("Logout error:", error);
       
-      // Force redirect even if there's an error
-      window.location.href = "/";
     }
   };
 

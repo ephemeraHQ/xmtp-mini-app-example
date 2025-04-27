@@ -36,8 +36,6 @@ export default function GroupManagement() {
     setIsRefreshing(true);
     
     try {
-      // Sync conversations to ensure we have the latest data
-      await client.conversations.sync();
       
       // Get group info from API
       const response = await fetch(`/api/proxy/get-group-id?inboxId=${client.inboxId}`);
@@ -65,14 +63,6 @@ export default function GroupManagement() {
       // Find the group in existing conversations
       let group = conversations.find(conv => conv.id === groupId) as Group | undefined;
 
-      if (!group) {
-        // If not found, refresh conversations and try again
-        await client.conversations.sync();
-        const newConversations = await client.conversations.list();
-        setConversations(newConversations);
-        
-        group = newConversations.find(conv => conv.id === groupId) as Group | undefined;
-      }
       
       if (group && group.isActive) {
         setLocalGroupConversation(group);
@@ -97,13 +87,7 @@ export default function GroupManagement() {
     }
   }, [client, conversations, isRefreshing, setConversations]);
 
-  // Fetch group data when client is available - we stop retrying if backend is down
-  useEffect(() => {
-    if (client && client.inboxId && backendStatus !== "offline") {
-      fetchGroupData();
-    }
-  }, [client, client?.inboxId, fetchGroupData, backendStatus]);
-
+  
   // Join group handler
   const handleJoinGroup = async () => {
     if (!client) return;
@@ -126,8 +110,6 @@ export default function GroupManagement() {
       if (data.success) {
         setIsGroupJoined(true);
         
-        // Sync after joining
-        await client.conversations.sync();
         const newConversations = await client.conversations.list();
         setConversations(newConversations);
         
@@ -161,8 +143,6 @@ export default function GroupManagement() {
       const data = await response.json();
 
       if (data.success) {
-        // Update state after leaving
-        await client.conversations.sync();
         const newConversations = await client.conversations.list();
         setConversations(newConversations);
         
