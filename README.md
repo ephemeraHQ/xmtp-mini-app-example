@@ -2,14 +2,6 @@
 
 This repository provides a debugging toolkit for mini-apps built with the [XMTP](https://docs.xmtp.org/) network and Farcaster Frames.
 
-## Why XMTP?
-
-- **End-to-end & compliant**: Data is encrypted in transit and at rest, meeting strict security and regulatory standards.
-- **Open-source & trustless**: Built on top of the [MLS](https://messaginglayersecurity.rocks/) protocol, it replaces trust in centralized certificate authorities with cryptographic proofs.
-- **Privacy & metadata protection**: Offers anonymous usage through SDKs and pseudonymous usage with nodes tracking minimum metadata.
-- **Decentralized**: Operates on a peer-to-peer network, eliminating single points of failure and ensuring continued operation even if some nodes go offline.
-- **Multi-agent**: Allows confidential communication between multiple agents and humans through MLS group chats.
-
 ## Getting started
 
 This debugging toolkit includes a full-stack mini-app example with both frontend and backend components.
