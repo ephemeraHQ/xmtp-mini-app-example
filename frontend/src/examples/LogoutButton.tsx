@@ -6,6 +6,11 @@ import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { clearWagmiCookies } from "@/lib/wagmi";
 
+// Constants for local storage keys
+const XMTP_HAS_CONNECTED_KEY = "xmtp:hasConnected";
+const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
+const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
+
 export default function LogoutButton() {
   const { disconnect: disconnectXmtp } = useXMTP();
   const { disconnect } = useDisconnect();
@@ -23,7 +28,20 @@ export default function LogoutButton() {
         credentials: "include", // Important to include cookies
       });
 
-      // Clear any client-side storage
+      // First clear XMTP-related localStorage items
+      localStorage.removeItem(XMTP_HAS_CONNECTED_KEY);
+      localStorage.removeItem(XMTP_CONNECTION_TYPE_KEY);
+      localStorage.removeItem(XMTP_EPHEMERAL_KEY);
+      
+      // Clear any XMTP-specific local storage items
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("xmtp.")) {
+          localStorage.removeItem(key);
+        }
+      }
+      
+      // Clear remaining storage
       localStorage.clear();
       sessionStorage.clear();
 

@@ -3,20 +3,6 @@ import { cookieStorage, createConfig, createStorage, http } from "wagmi";
 
 const chains = [mainnet, base] as const;
 
-export const wagmiConfig = createConfig({
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
-  ssr: true,
-  chains: chains,
-  transports: {
-    [mainnet.id]: http("https://mainnet.llamarpc.com"),
-    [base.id]: http("https://base.llamarpc.com"),
-  },
-  // Remove the connector for now to avoid build errors
-  connectors: [],
-});
-
 // Function to clear wagmi cookies
 export const clearWagmiCookies = () => {
   // wagmi uses these cookie keys
@@ -32,3 +18,17 @@ export const clearWagmiCookies = () => {
     document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
   });
 };
+
+export const wagmiConfig = createConfig({
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
+  ssr: true,
+  chains: chains,
+  transports: {
+    [mainnet.id]: http("https://mainnet.llamarpc.com"),
+    [base.id]: http("https://base.llamarpc.com"),
+  },
+  // Remove the connector for now to avoid build errors
+  connectors: [],
+});

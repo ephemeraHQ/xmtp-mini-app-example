@@ -9,21 +9,45 @@ import ConnectionInfo from "@/examples/ConnectionInfo";
 import WalletConnection from "@/examples/WalletConnection";
 import GroupManagement from "@/examples/GroupManagement";
 import BackendInfo from "@/examples/BackendInfo";
-import LogoutButton from "@/examples/LogoutButton";
 
 // Force dynamic rendering with no caching
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default function ExamplePage() {
-  const { client, initializing } = useXMTP();
+  const { client, initializing, disconnect } = useXMTP();
   const [isConnected, setIsConnected] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
 
   // Only run client-side code after mount
   useEffect(() => {
     setMounted(true);
+    
+    // Add a safety timeout to prevent UI from being stuck in loading state
+    const timeoutId = setTimeout(() => {
+      setShowLoader(false);
+    }, 20000); // 20 seconds max loading time
+    
+    return () => clearTimeout(timeoutId);
   }, []);
+  
+  // Update loader state based on initializing state
+  useEffect(() => {
+    if (!initializing) {
+      setShowLoader(false);
+    } else {
+      setShowLoader(true);
+    }
+  }, [initializing]);
+
+  // Handle logout through the header
+  const handleLogout = () => {
+    if (client) {
+      disconnect();
+      window.location.href = window.location.origin; // Redirect to home after logout
+    }
+  };
 
   // If not mounted yet, render loading
   if (!mounted) {
@@ -41,9 +65,9 @@ export default function ExamplePage() {
       <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
         <Header 
           isConnected={isConnected || !!client} 
-          onLogout={isConnected || !!client ? () => {} : undefined} 
+          onLogout={isConnected || !!client ? handleLogout : undefined} 
         />
-        {initializing ? (
+        {showLoader ? (
           <FullPageLoader />
         ) : (
           <div className="flex flex-col gap-4 px-4 py-4 h-full overflow-auto">
@@ -63,11 +87,6 @@ export default function ExamplePage() {
             {/* Backend Info (show when connected) */}
             {client && (
               <BackendInfo />
-            )}
-            
-            {/* Logout Button (show when connected) */}
-            {(isConnected || !!client) && (
-              <LogoutButton />
             )}
           </div>
         )}

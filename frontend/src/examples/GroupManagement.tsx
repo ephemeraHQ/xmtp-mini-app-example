@@ -79,6 +79,27 @@ export default function GroupManagement() {
           
           const messages = await foundGroup.messages();
           setGroupMessageCount(messages.length);
+        } else {
+          console.log("Found group is not active, refreshing conversations");
+          await client.conversations.sync();
+          const newConversations = await client.conversations.list();
+          setConversations(newConversations);
+          
+          // Try to find the group again after refresh
+          foundGroup = newConversations.find(
+            (conv) => conv.id === groupId,
+          ) as Group | undefined;
+          
+          if (foundGroup && foundGroup.isActive) {
+            console.log("Found active group after refresh:", foundGroup.id);
+            setGroupConversation(foundGroup);
+            
+            const members = await foundGroup.members();
+            setGroupMemberCount(members.length);
+            
+            const messages = await foundGroup.messages();
+            setGroupMessageCount(messages.length);
+          }
         }
       } else if (isMember && client && groupId) {
         console.log("Not found in conversations but is a member, refreshing...");
@@ -86,6 +107,24 @@ export default function GroupManagement() {
         await client.conversations.sync();
         const newConversations = await client.conversations.list();
         setConversations(newConversations);
+        
+        // Try again after sync
+        const syncedGroup = newConversations.find(
+          (conv) => conv.id === groupId,
+        ) as Group | undefined;
+        
+        if (syncedGroup) {
+          console.log("Found group after sync:", syncedGroup.id);
+          setGroupConversation(syncedGroup);
+          
+          const members = await syncedGroup.members();
+          setGroupMemberCount(members.length);
+          
+          const messages = await syncedGroup.messages();
+          setGroupMessageCount(messages.length);
+        } else {
+          console.log("Still cannot find group after sync, may need another refresh");
+        }
       }
     } catch (error) {
       console.error("Error fetching group ID:", error);
@@ -166,6 +205,9 @@ export default function GroupManagement() {
       console.log("Join group response:", data);
 
       if (data.success) {
+        // Mark as joined immediately after API success
+        setIsGroupJoined(true);
+        
         // Clear any potential outdated state immediately
         setGroupConversation(null);
         
@@ -180,6 +222,9 @@ export default function GroupManagement() {
             await handleFetchGroupId();
           } catch (syncError) {
             console.error("Error syncing after join:", syncError);
+          } finally {
+            // Only set joining to false after sync completes
+            setJoining(false);
           }
         }, 2000);
       } else {
@@ -189,7 +234,6 @@ export default function GroupManagement() {
     } catch (error) {
       console.error("Error joining group", error);
       setErrorMessage(error instanceof Error ? error.message : "Failed to join group");
-    } finally {
       setJoining(false);
     }
   };
@@ -241,6 +285,8 @@ export default function GroupManagement() {
             <span className="text-yellow-500"> Not connected</span>
           ) : isRefreshing ? (
             <span className="text-yellow-500"> Refreshing...</span>
+          ) : joining && isGroupJoined ? (
+            <span className="text-yellow-500"> Member - Syncing data...</span>
           ) : joining ? (
             <span className="text-yellow-500"> Processing...</span>
           ) : isGroupJoined ? (
@@ -265,13 +311,15 @@ export default function GroupManagement() {
         variant={joining || isRefreshing ? "outline" : "default"}
         onClick={isGroupJoined ? handleLeaveGroup : handleJoinGroup}
         disabled={joining || isRefreshing || !client}>
-        {joining 
-          ? "Processing..." 
-          : isRefreshing
-            ? "Refreshing..."
-            : isGroupJoined 
-              ? `Leave Group${groupConversation ? `: ${groupConversation.name || ""}` : ""}` 
-              : "Join Group Chat"}
+        {joining && isGroupJoined
+          ? "Syncing Group Data..." 
+          : joining 
+            ? "Processing..." 
+            : isRefreshing
+              ? "Refreshing..."
+              : isGroupJoined 
+                ? `Leave Group${groupConversation ? `: ${groupConversation.name || ""}` : ""}` 
+                : "Join Group Chat"}
       </Button>
       
       {/* Error Message */}
