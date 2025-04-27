@@ -50,34 +50,8 @@ export default function GroupManagement() {
       
       const groupId = data.groupId;
       const isMember = data.isMember;
-      const backendMemberCount = data.memberCount || 0;
-      const backendMessageCount = data.messageCount || 0;
-      const backendGroupName = data.groupName;
-      
-      console.log("Group ID:", groupId, "Is Member:", isMember);
       setIsGroupJoined(isMember);
 
-      if (!isMember || !groupId) {
-        setLocalGroupConversation(null);
-        setGroupMemberCount(0);
-        setGroupMessageCount(0);
-        setLatestMessage(null);
-        setGroupName(null);
-        setIsRefreshing(false);
-        return;
-      }
-      
-      // Set initial data from backend response
-      setGroupMemberCount(backendMemberCount);
-      setGroupMessageCount(backendMessageCount);
-      if (backendGroupName) {
-        setGroupName(backendGroupName);
-      }
-      
-      if (data.lastMessage) {
-        setLatestMessage(String(data.lastMessage.content));
-      }
-      
       // Sync conversations to make sure we have the latest data
       await client.conversations.sync();
       const newConversations = await client.conversations.list();
@@ -91,6 +65,8 @@ export default function GroupManagement() {
       if (group && group.isActive) {
         setLocalGroupConversation(group);
         setGroupName(group.name || ""); 
+      
+
         
         // Get group members
         const members = await group.members();
@@ -220,6 +196,7 @@ export default function GroupManagement() {
 
   // Message sending handler
   const handleSendMessage = async () => {
+    console.log("Sending message:", groupConversation);
     if (!client || !groupConversation || !message.trim()) return;
 
     setSending(true);
@@ -274,9 +251,8 @@ export default function GroupManagement() {
               <span className="text-red-500"> Not a member</span>
             )}
           </p>
-         
           <p><span className="text-gray-500">Group Name:</span> {groupName || "No group"}</p>
-          <p><span className="text-gray-500">Group ID:</span> {groupConversation?.id ? `${groupConversation.id.slice(0, 8)}...${groupConversation.id.slice(-8)}` : "No ID"}</p>
+          <p><span className="text-gray-500">Group ID:</span> {groupConversation?.id ?? "No ID"}</p>
           <p><span className="text-gray-500">Members:</span> {groupMemberCount || 0}</p>
           <p><span className="text-gray-500">Messages:</span> {groupMessageCount || 0}</p>
           <p className="mt-1">
@@ -296,7 +272,7 @@ export default function GroupManagement() {
       </div>
 
       {/* Group Chat Section - Only show when in a group */}
-      {client && isGroupJoined && groupConversation && groupConversation.isActive && (
+      {client && isGroupJoined  && (
         <div className="w-full bg-gray-900 p-3 rounded-md">
           <div className="flex justify-between items-center">
             <h2 className="text-white text-sm font-medium">Group Chat</h2>
