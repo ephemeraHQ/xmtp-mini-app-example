@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { FrameProvider } from "@/context/frame-context";
 import { XMTPProvider } from "@/context/xmtp-context";
-import { CustomWagmiProvider } from "./custom-wagmi-provider";
+import { CustomWagmiProvider } from "./wagmi";
 
 const ErudaProvider = dynamic(
   () => import("@/providers/eruda").then((c) => c.ErudaProvider),

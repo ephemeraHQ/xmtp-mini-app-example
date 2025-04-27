@@ -95,7 +95,7 @@ export default function GroupManagement() {
     if (client && client.inboxId) {
       fetchGroupData();
     }
-  }, [client?.inboxId]);
+  }, [client?.inboxId, client, fetchGroupData]);
 
   // Join group handler
   const handleJoinGroup = async () => {

@@ -1,8 +1,6 @@
-"use client";
-
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { hexToUint8Array } from "uint8array-extras";
-import { injected, useConnect, useWalletClient, useAccount } from "wagmi";
+import { injected, useConnect, useWalletClient, useAccount ,useConnectors} from "wagmi";
 import { mainnet } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/Button";
@@ -10,33 +8,19 @@ import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
 import { createSCWSigner, createEphemeralSigner, createEOASigner } from "@/lib/xmtp";
 
-// Add Ethereum provider type
-interface EthereumProvider {
-  request: (args: {method: string, params?: any[]}) => Promise<any>;
-  isMetaMask?: boolean;
-}
-
-// Extend window type to include ethereum
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
-}
-
 // Simple local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
 const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
-const METAMASK_CONNECTION_PENDING = "metamask_connection_pending";
 
 export default function WalletConnection() {
   const { initialize, initializing, client } = useXMTP();
   const { data: walletData } = useWalletClient();
-  const { connect } = useConnect();
+  const { connect, status: connectStatus } = useConnect();
   const { isConnected } = useAccount();
+  const connectors = useConnectors();
   
   const [connectionType, setConnectionType] = useState<string>("");
-  const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
-  const connectionAttemptedRef = useRef(false);
+  const [ephemeralAddress, setEphemeralAddress] = useState<string>();
 
   // Initialize XMTP client with wallet signer
   const initializeXmtp = useCallback((signer: any) => {
@@ -48,132 +32,23 @@ export default function WalletConnection() {
     });
   }, [initialize]);
 
-  // Helper function to check if connection is already pending
-  const checkConnectionPending = (): boolean => {
-    return sessionStorage.getItem(METAMASK_CONNECTION_PENDING) === 'true';
-  };
-
-  // Helper function to set connection pending state
-  const setConnectionPending = (isPending: boolean): void => {
-    if (isPending) {
-      sessionStorage.setItem(METAMASK_CONNECTION_PENDING, 'true');
-    } else {
-      sessionStorage.removeItem(METAMASK_CONNECTION_PENDING);
-    }
-  };
-
-  // Helper function to safely request accounts
-  const safeRequestAccounts = async () => {
-    if (checkConnectionPending() || !window.ethereum) {
-      return null;
-    }
-
-    try {
-      setConnectionPending(true);
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      
-      // Only proceed with wallet_requestPermissions if we don't have accounts
-      if (!accounts || accounts.length === 0) {
-        return await window.ethereum.request({ 
-          method: 'wallet_requestPermissions', 
-          params: [{ eth_accounts: {} }] 
-        }).then(() => {
-          return window.ethereum!.request({ method: 'eth_requestAccounts' });
-        });
-      }
-      
-      return accounts;
-    } catch (error) {
-      console.error("Error requesting accounts:", error);
-      return null;
-    } finally {
-      setConnectionPending(false);
-    }
-  };
-
-  // Load saved connection on mount
-  useEffect(() => {
-    // Prevent multiple connection attempts during a session
-    if (connectionAttemptedRef.current) return;
-    connectionAttemptedRef.current = true;
-
-    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
-    if (savedConnectionType) {
-      setConnectionType(savedConnectionType);
-
-      // For ephemeral wallets, reconnect immediately
-      if (savedConnectionType === "Ephemeral Wallet") {
-        const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
-        if (savedPrivateKey) {
-          try {
-            // Format key properly
-            const formattedKey = savedPrivateKey.startsWith('0x') 
-              ? savedPrivateKey as `0x${string}` 
-              : `0x${savedPrivateKey}` as `0x${string}`;
-            
-            // Create account from saved key
-            const account = privateKeyToAccount(formattedKey);
-            setEphemeralAddress(account.address);
-            
-            // Connect with ephemeral signer
-            const ephemeralSigner = createEphemeralSigner(formattedKey);
-            initializeXmtp(ephemeralSigner);
-          } catch (error) {
-            console.error("Error reconnecting ephemeral wallet:", error);
-          }
-        }
-      } else if (savedConnectionType === "EOA Wallet" && window.ethereum) {
-        // Add a small delay before auto-connecting
-        const timer = setTimeout(() => {
-          // Try to reconnect EOA wallet with the safer approach
-          safeRequestAccounts().then(accounts => {
-            if (accounts && accounts.length > 0) {
-              connect({ connector: injected() });
-            }
-          });
-        }, 300);
-        
-        return () => clearTimeout(timer);
-      } else if (savedConnectionType === "Smart Contract Wallet" && window.ethereum) {
-        // Add a small delay for SCW connection too
-        const timer = setTimeout(() => {
-          // Try to reconnect SCW
-          connect({ connector: injected() });
-        }, 300);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [connect, initializeXmtp]);
-
-  // Connect with EOA wallet (MetaMask)
+  // Connect with EOA wallet (MetaMask or Injected)
   const connectWithEOA = useCallback(() => {
     setConnectionType("EOA Wallet");
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
     
-    // For MetaMask, request accounts with safeguards
-    if (window.ethereum?.isMetaMask) {
-      safeRequestAccounts()
-        .then(accounts => {
-          if (accounts && accounts.length > 0) {
-            // Save connection type
-            localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
-            
-            // Connect with injected provider
-            connect({ connector: injected() });
-            
-            // If wallet data is already available, initialize XMTP
-            if (walletData) {
-              const signer = createEOASigner(walletData.account.address, walletData);
-              initializeXmtp(signer);
-            }
-          }
-        });
-    } else {
-      // Not MetaMask, connect directly
-      localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
-      connect({ connector: injected() });
-    }
-  }, [connect, walletData, initializeXmtp]);
+    // Use the injected connector
+    connect({ connector: injected() });
+  }, [connect]);
+
+  // Connect with Coinbase Wallet
+  const connectWithCoinbase = useCallback(() => {
+    setConnectionType("Coinbase Wallet");
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Wallet");
+    
+    // Use injected for Coinbase if available
+    connect({ connector: injected() });
+  }, [connect]);
 
   // Connect with Ephemeral Wallet
   const connectWithEphemeral = useCallback(() => {
@@ -195,43 +70,96 @@ export default function WalletConnection() {
     initializeXmtp(ephemeralSigner);
   }, [initializeXmtp]);
 
-  // Connect with Smart Contract Wallet
-  const connectWithSCW = useCallback(() => {
-    setConnectionType("Smart Contract Wallet");
-    
-    // Save connection type
-    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Smart Contract Wallet");
-    
-    // Connect to wallet
-    connect({ connector: injected() });
-    
-    // Initialize XMTP if wallet data is available
-    if (walletData?.account) {
-      initializeXmtp(
-        createSCWSigner(
-          walletData.account.address,
-          walletData,
-          BigInt(mainnet.id),
-        )
-      );
-    }
-  }, [connect, initializeXmtp, walletData]);
-
-  // Auto-initialize when wallet data becomes available
+  // Try to reconnect on page load
   useEffect(() => {
-    if (connectionType === "EOA Wallet" && walletData && !client && !initializing) {
-      const signer = createEOASigner(walletData.account.address, walletData);
-      initializeXmtp(signer);
-    } else if (connectionType === "Smart Contract Wallet" && walletData && !client && !initializing) {
-      initializeXmtp(
-        createSCWSigner(
-          walletData.account.address,
-          walletData,
-          BigInt(mainnet.id),
-        )
-      );
+    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+    if (savedConnectionType) {
+      setConnectionType(savedConnectionType);
+
+      if (savedConnectionType === "Ephemeral Wallet") {
+        const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
+        if (savedPrivateKey) {
+          try {
+            // Format key properly
+            const formattedKey = savedPrivateKey.startsWith('0x') 
+              ? savedPrivateKey as `0x${string}` 
+              : `0x${savedPrivateKey}` as `0x${string}`;
+            
+            // Create account from saved key
+            const account = privateKeyToAccount(formattedKey);
+            setEphemeralAddress(account.address);
+            
+            // Connect with ephemeral signer
+            const ephemeralSigner = createEphemeralSigner(formattedKey);
+            initializeXmtp(ephemeralSigner);
+          } catch (error) {
+            console.error("Error reconnecting ephemeral wallet:", error);
+          }
+        }
+      }
+      // For wallet connections, try to reconnect if not already connected
+      else if ((savedConnectionType === "EOA Wallet" || savedConnectionType === "Coinbase Wallet") 
+               && !isConnected && window.ethereum) {
+        // Use a small delay to avoid connection conflicts
+        setTimeout(() => {
+          if (!isConnected) {
+            connect({ connector: injected() });
+          }
+        }, 300);
+      }
     }
-  }, [connectionType, walletData, client, initializing, initializeXmtp]);
+  }, [initializeXmtp, connect, isConnected]);
+
+  // Initialize XMTP when wallet is connected
+  useEffect(() => {
+    const initializeWithWallet = async () => {
+      if (!walletData?.account || !isConnected) return;
+      
+      // Don't initialize if already connected
+      if (client || initializing) return;
+      
+      // Check if we need to use SCW signer
+      let isSCW = false;
+      
+      try {
+        // Check if wallet is a Smart Contract Wallet
+        // Note: This approach has been updated for viem/wagmi compatibility
+        // Previously with ethers.js, we could check connector.getProvider()
+        // Now we examine the transport provider directly
+        
+        if (walletData && walletData.transport && typeof walletData.transport === 'object') {
+          const transportProvider = (walletData.transport as any).provider;
+          if (transportProvider && 'connectionType' in transportProvider) {
+            isSCW = transportProvider.connectionType === "scw_connection_type";
+          }
+        }
+
+        // Alternative detection method can be added here if needed
+      } catch (error) {
+        console.error("Error checking wallet type:", error);
+      }
+      
+      // Create appropriate signer and initialize
+      if (isSCW) {
+        initializeXmtp(
+          createSCWSigner(
+            walletData.account.address,
+            walletData,
+            BigInt(mainnet.id),
+          )
+        );
+      } else {
+        initializeXmtp(
+          createEOASigner(walletData.account.address, walletData)
+        );
+      }
+    };
+    
+    void initializeWithWallet();
+  }, [walletData, isConnected, client, initializing, initializeXmtp]);
+
+  // Determine if UI should be disabled
+  const isDisabled = initializing || connectStatus === "pending";
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -240,32 +168,52 @@ export default function WalletConnection() {
           className="w-full" 
           size="lg" 
           onClick={connectWithEOA}
-          disabled={initializing}>
+          disabled={isDisabled}>
           {initializing && connectionType === "EOA Wallet" 
             ? "Connecting EOA Wallet..." 
-            : "Connect with EOA Wallet"}
+            : connectStatus === "pending" && !initializing
+              ? "Waiting for wallet..."
+              : "Connect with MetaMask"}
+        </Button>
+        
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={connectWithCoinbase}
+          disabled={isDisabled}>
+          {initializing && connectionType === "Coinbase Wallet" 
+            ? "Connecting Coinbase Wallet..." 
+            : "Connect with Coinbase"}
         </Button>
         
         <Button 
           className="w-full" 
           size="lg" 
           onClick={connectWithEphemeral}
-          disabled={initializing}>
+          disabled={isDisabled}>
           {initializing && connectionType === "Ephemeral Wallet" 
             ? "Connecting Ephemeral Wallet..." 
             : "Connect with Ephemeral Wallet"}
         </Button>
-        
-        <Button 
-          className="w-full" 
-          size="lg" 
-          onClick={connectWithSCW}
-          disabled={initializing}>
-          {initializing && connectionType === "Smart Contract Wallet" 
-            ? "Connecting Smart Contract Wallet..." 
-            : "Connect with Smart Contract Wallet"}
-        </Button>
       </div>
+      
+      {/* Connection Status */}
+      {connectionType && (
+        <div className="w-full bg-gray-900 p-3 rounded-md">
+          <h2 className="text-white text-sm font-medium">Connection Status</h2>
+          <div className="text-gray-400 text-xs mt-1">
+            <p><span className="text-gray-500">Type:</span> {connectionType}</p>
+            {connectionType === "Ephemeral Wallet" && ephemeralAddress && (
+              <p><span className="text-gray-500">Address:</span> {ephemeralAddress}</p>
+            )}
+            {isConnected && walletData && (
+              <p><span className="text-gray-500">Address:</span> {walletData.account.address}</p>
+            )}
+            {initializing && <p className="text-yellow-500">Connecting to XMTP...</p>}
+            {client && <p className="text-green-500">Connected</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

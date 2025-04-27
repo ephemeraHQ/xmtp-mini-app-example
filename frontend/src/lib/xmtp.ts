@@ -3,16 +3,8 @@ import { toBytes, type Hex, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
 export const createEphemeralSigner = (privateKey: Hex): Signer => {
-  console.log("Creating ephemeral signer with key type:", typeof privateKey);
-  console.log("Private key format:", {
-    length: privateKey.length,
-    startsWithHex: privateKey.startsWith("0x"),
-    preview: `${privateKey.substring(0, 6)}...${privateKey.substring(privateKey.length - 6)}`
-  });
-  
-  try {
+ 
     const account = privateKeyToAccount(privateKey);
-    console.log("Successfully created account from private key:", account.address);
     
     return {
       type: "EOA",
@@ -32,10 +24,6 @@ export const createEphemeralSigner = (privateKey: Hex): Signer => {
         }
       },
     };
-  } catch (error) {
-    console.error("Error creating account from private key:", error);
-    throw error;
-  }
 };
 
 export const createEOASigner = (

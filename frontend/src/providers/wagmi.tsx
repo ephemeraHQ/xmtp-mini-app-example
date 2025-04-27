@@ -2,7 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";
-import { wagmiConfig } from "@/lib/wagmi";
+import { base, mainnet, sepolia, baseSepolia } from "viem/chains";
+import { Storage, createConfig, createStorage, http } from "wagmi";
+import { injected, metaMask } from "wagmi/connectors";
 
 const queryClient = new QueryClient();
 
@@ -22,3 +24,22 @@ export const CustomWagmiProvider = ({
     </WagmiProvider>
   );
 };
+
+
+
+export const wagmiConfig = createConfig({
+
+  ssr: true,
+  chains: [mainnet, base, sepolia, baseSepolia],
+  transports: {
+    [mainnet.id]: http(),
+    [sepolia.id]: http(),
+    [base.id]: http(),
+    [baseSepolia.id]: http(),
+  },
+  // Add the injected connector - this was missing!
+  connectors: [
+    injected(),
+    metaMask(),
+  ],
+});
