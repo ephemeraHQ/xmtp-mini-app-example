@@ -1,10 +1,20 @@
 import * as jose from "jose";
 import { NextRequest, NextResponse } from "next/server";
 import { Address, verifyMessage } from "viem";
+import { z } from "zod";
 import { env } from "@/lib/env";
 import { fetchUserFromNeynar } from "@/lib/neynar";
-import { NeynarUser } from "@/types";
-import { signInSchema } from "@/types/sign-in";
+import { NeynarUser } from "@/lib/types";
+
+const signInSchema = z.object({
+  contextData: z.object({
+    fid: z.string(),
+  }),
+  signature: z.string(),
+  message: z.string(),
+});
+
+type SignInData = z.infer<typeof signInSchema>;
 
 export const POST = async (req: NextRequest) => {
   const data = await req.json();

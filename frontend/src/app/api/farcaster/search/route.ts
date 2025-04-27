@@ -1,7 +1,7 @@
 import ky from "ky";
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/env";
-import { NeynarUser } from "@/types";
+import { NeynarUser } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;

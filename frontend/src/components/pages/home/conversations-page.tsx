@@ -1,27 +1,20 @@
-import { Conversation, Group } from "@xmtp/browser-sdk";
+import { Group } from "@xmtp/browser-sdk";
 import ky from "ky";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/shadcn/button";
 import { useXMTP } from "@/context/xmtp-context";
-import { useConversations } from "@/hooks/use-conversations";
 import { cn } from "@/lib/utils";
 
-interface ConversationsPageProps {
-  onSelectConversation: (conv: Conversation) => void;
-}
-
-export default function ConversationsPage({
-  onSelectConversation,
-}: ConversationsPageProps) {
+export default function ConversationsPage() {
   const { client, conversations, setConversations } = useXMTP();
   const [joining, setJoining] = useState(false);
-  const { loading, list } = useConversations();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isGroupJoined, setIsGroupJoined] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [groupConversation, setGroupConversation] =
-    useState<Conversation | null>(null);
+  const [groupConversation, setGroupConversation] = useState<Group | null>(
+    null,
+  );
   const [hasAttemptedRefresh, setHasAttemptedRefresh] = useState(false);
 
   const handleFetchGroupId = useCallback(async () => {
@@ -52,14 +45,16 @@ export default function ConversationsPage({
       setIsGroupJoined(isMember);
       console.log("Setting isGroupJoined to:", isMember);
 
-      const foundGroup = conversations.find((conv) => conv.id === groupId);
+      const foundGroup = conversations.find(
+        (conv) => conv.id === groupId,
+      ) as Group;
       console.log("Found group:", foundGroup ? foundGroup.id : "not found");
 
       if (foundGroup) {
         await foundGroup?.sync();
-        console.log("Group isActive:", (foundGroup as Group).isActive);
-        if ((foundGroup as Group).isActive) {
-          setGroupName((foundGroup as Group).name ?? "XMTP Mini app");
+        console.log("Group isActive:", foundGroup.isActive);
+        if (foundGroup.isActive) {
+          setGroupName(foundGroup.name ?? "XMTP Mini app");
           setGroupConversation(foundGroup);
           console.log("Group conversation set:", foundGroup.id);
         } else {
@@ -74,7 +69,10 @@ export default function ConversationsPage({
         setIsRefreshing(true);
         setHasAttemptedRefresh(true);
         try {
-          const newConversations = await list(undefined, true);
+          if (!client) {
+            return;
+          }
+          const newConversations = await client.conversations.list();
           console.log(
             "After refresh, new conversations count:",
             newConversations.length,
@@ -98,7 +96,6 @@ export default function ConversationsPage({
     conversations,
     hasAttemptedRefresh,
     isRefreshing,
-    list,
     setConversations,
   ]);
 
@@ -121,23 +118,6 @@ export default function ConversationsPage({
     }
   }, [conversations, isGroupJoined, hasAttemptedRefresh, handleFetchGroupId]);
 
-  // Add monitoring for conversations changes
-  useEffect(() => {
-    console.log(
-      "Conversations updated in ConversationsPage:",
-      conversations.length,
-    );
-    if (conversations.length > 0) {
-      console.log("First conversation ID:", conversations[0].id);
-    }
-  }, [conversations]);
-
-  // Add monitoring for isGroupJoined and groupConversation changes
-  useEffect(() => {
-    console.log("isGroupJoined changed:", isGroupJoined);
-    console.log("groupConversation:", groupConversation);
-  }, [isGroupJoined, groupConversation]);
-
   const handleLeaveGroup = async () => {
     if (!client) return;
 
@@ -157,7 +137,7 @@ export default function ConversationsPage({
       setJoining(false);
 
       if (data.success) {
-        const newConversations = await list(undefined, true);
+        const newConversations = await client.conversations.list();
         setConversations(newConversations);
         setIsGroupJoined(false);
         setGroupConversation(null);
@@ -188,7 +168,7 @@ export default function ConversationsPage({
       setJoining(false);
 
       if (data.success) {
-        const newConversations = await list(undefined, true);
+        const newConversations = await client.conversations.list();
         setConversations(newConversations);
       } else {
         console.warn("Failed to add me to the default conversation", data);
@@ -202,101 +182,65 @@ export default function ConversationsPage({
   };
 
   const handleRefresh = async () => {
+    setIsRefreshing(true);
     try {
-      setIsRefreshing(true);
-      // Reset the flag when manually refreshing
-      setHasAttemptedRefresh(false);
-      const newConversations = await list(undefined, true);
+      if (!client) {
+        return;
+      }
+      const newConversations = await client.conversations.list();
       setConversations(newConversations);
+      await handleFetchGroupId();
     } catch (error) {
-      console.error("Error refreshing conversations", error);
-      setErrorMessage("Failed to refresh conversations");
+      console.error("Error refreshing conversations:", error);
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  // Main button action based on joined state
+  const mainButtonAction = isGroupJoined
+    ? handleLeaveGroup
+    : handleAddMeToDefaultConversation;
+
+  const mainButtonText = isGroupJoined
+    ? `Leave Group${groupName ? `: ${groupName}` : ""}`
+    : "Join Group Chat";
+
+  const buttonColor = isGroupJoined ? "destructive" : "default";
+
   return (
-    <div className="flex flex-col gap-2 text-center mt-4">
-      <h2 className="text-2xl font-bold text-white">Group chat</h2>
-
-      <div className="flex flex-col gap-4 items-center">
-        <p className="text-xs text-gray-400">
-          Inbox ID: {client?.inboxId?.slice(0, 6)}...
-          {client?.inboxId?.slice(-4)}
-        </p>
-
-        {isGroupJoined && groupConversation ? (
-          <button
-            onClick={() => {
-              console.log(
-                "Enter button clicked, passing conversation:",
-                groupConversation.id,
-              );
-              if (groupConversation && groupConversation.id) {
-                // Validate the conversation object before passing it
-                onSelectConversation(groupConversation);
-              } else {
-                console.error("Invalid group conversation:", groupConversation);
-                // Try to refresh the conversation list
-                handleRefresh();
-              }
-            }}
-            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
-            Enter {groupName}
-          </button>
-        ) : isGroupJoined ? (
-          // User is a member but conversation object isn't loaded
-          <button
-            onClick={handleRefresh}
-            className="px-6 py-3 bg-yellow-600 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50 transition-colors duration-200"
-            disabled={isRefreshing}>
-            {isRefreshing ? "Loading group..." : "Enter group"}
-          </button>
-        ) : (
-          <button
-            onClick={handleAddMeToDefaultConversation}
-            className={cn(
-              "px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200",
-              {
-                "opacity-50":
-                  isRefreshing ||
-                  loading ||
-                  joining ||
-                  !client ||
-                  !client.inboxId,
-              },
-            )}
-            disabled={
-              isRefreshing || loading || joining || !client || !client.inboxId
-            }>
-            {loading || joining ? "Joining..." : "Join chat"}
-            {"1.1.1"}
-          </button>
-        )}
-
-        {errorMessage ? (
-          <div className="text-red-500 text-sm">{errorMessage}</div>
-        ) : null}
-
-        <Button
-          variant="link"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="text-xs text-gray-400">
-          {isRefreshing ? "Refreshing..." : "Refresh"}
-        </Button>
-
-        {isGroupJoined && (
+    <>
+      <div className={cn("flex flex-col items-center justify-start h-full")}>
+        <div className="w-full flex flex-col items-center justify-center gap-4 py-4">
           <Button
-            variant="link"
-            onClick={handleLeaveGroup}
-            disabled={joining}
-            className="text-xs text-red-400">
-            {joining ? "Leaving..." : "Leave group"}
+            className="w-full"
+            size="lg"
+            variant={buttonColor}
+            onClick={mainButtonAction}
+            disabled={joining || isRefreshing}>
+            {joining ? "Processing..." : mainButtonText}
           </Button>
+
+          <Button
+            className="w-full"
+            size="sm"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={joining || isRefreshing}>
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
+
+          {errorMessage && (
+            <div className="text-red-500 text-sm mt-2">{errorMessage}</div>
+          )}
+        </div>
+
+        {groupConversation && isGroupJoined && (
+          <div className="mt-4 text-center text-slate-400">
+            You have joined the group: {groupName}
+          </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

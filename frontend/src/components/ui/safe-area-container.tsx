@@ -1,6 +1,6 @@
 "use client";
 
-import { SafeAreaInsets } from "@/types";
+import { SafeAreaInsets } from "@/lib/types";
 
 interface SafeAreaContainerProps {
   children: React.ReactNode;

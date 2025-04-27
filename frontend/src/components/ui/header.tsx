@@ -22,7 +22,9 @@ export const Header = () => {
       id="navbar">
       <div className="flex flex-row gap-2 items-center justify-center tracking-tight my-0 py-1">
         <Logo className="w-[28px] h-[28px] cursor-pointer" />
-        <h1 className="text-lg sm:text-xl font-bold text-white">XMTP Chat</h1>
+        <h1 className="text-lg sm:text-xl font-bold text-white">
+          XMTP Group Chat
+        </h1>
       </div>
 
       <div className="flex flex-row gap-2 items-center justify-center">
