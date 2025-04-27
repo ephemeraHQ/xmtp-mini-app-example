@@ -236,22 +236,6 @@ export default function Page() {
     }
   };
 
-  // Refresh handler
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      if (!client) return;
-
-      const newConversations = await client.conversations.list();
-      setConversations(newConversations);
-      await handleFetchGroupId();
-    } catch (error) {
-      console.error("Error refreshing conversations:", error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   // Logout handler
   const handleLogout = () => {
     disconnectXmtp();
@@ -307,15 +291,6 @@ export default function Page() {
                     onClick={mainButtonAction}
                     disabled={joining || isRefreshing || !client}>
                     {joining ? "Processing..." : mainButtonText}
-                  </Button>
-
-                  <Button
-                    className="w-full"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRefresh}
-                    disabled={joining || isRefreshing || !client}>
-                    {isRefreshing ? "Refreshing..." : "Refresh Conversations"}
                   </Button>
 
                   <Button
