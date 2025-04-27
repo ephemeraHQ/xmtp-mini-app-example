@@ -219,8 +219,8 @@ const PageWithNoSSR = dynamic(
               try {
                 await client.conversations.sync();
                 const convos = await client.conversations.list();
-                setConversations(convos);
                 console.log("Loaded conversations:", convos.length);
+                setConversations(convos);
               } catch (error) {
                 console.error("Error loading conversations:", error);
               }
@@ -668,8 +668,6 @@ const PageWithNoSSR = dynamic(
                                 <p><span className="text-gray-500">Members:</span> {groupMemberCount}</p>
                                 <p><span className="text-gray-500">Messages:</span> {groupMessageCount}</p>
                               </>
-                            ) : client && !isRefreshing && !joining ? (
-                              <p className="text-yellow-500 mt-2">You&apos;re not a member of the group. Join to see more information.</p>
                             ) : null}
                             {client && !isGroupJoined && !isRefreshing && !joining && (
                               <p className="text-gray-400 mt-2">Click &quot;Join Group Chat&quot; to join the conversation.</p>
