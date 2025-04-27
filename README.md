@@ -101,7 +101,7 @@ XMTP_ENV=local
 
 ## Web inbox
 
-Interact with the XMTP network using [xmtp.chat](https://xmtp.chat), the official web inbox for developers.
+See web best practices with XMTP `browser-sdk` using [xmtp.chat](https://xmtp.chat), and it's open source version [xmtp-chat-web](https://github.com/xmtp/xmtp-js/tree/main/apps/xmtp.chat).
 
 ![](./screenshot.png)
 
