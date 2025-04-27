@@ -42,6 +42,8 @@ export const createEOASigner = (
   address: `0x${string}`,
   walletClient: WalletClient,
 ): Signer => {
+  console.log("Creating EOA signer for address:", address);
+  
   return {
     type: "EOA",
     getIdentifier: () => ({
@@ -49,11 +51,19 @@ export const createEOASigner = (
       identifierKind: "Ethereum",
     }),
     signMessage: async (message: string) => {
-      const signature = await walletClient.signMessage({
-        account: address,
-        message,
-      });
-      return toBytes(signature);
+      try {
+        console.log("EOA signer signing message");
+        const signature = await walletClient.signMessage({
+          account: address,
+          message,
+        });
+        console.log("EOA message signed successfully");
+        return toBytes(signature);
+      } catch (error) {
+        console.error("Error in EOA signer when signing message:", error);
+        // Rethrow the error so the caller can handle it
+        throw error;
+      }
     },
   };
 };
