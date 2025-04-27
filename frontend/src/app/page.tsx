@@ -10,7 +10,8 @@ export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-const HomePage = dynamic(() => import("@/components/pages/home"), {
+// Use dynamic import with no SSR to avoid hydration issues
+const Page = dynamic(() => import("@/components/pages/Page"), {
   ssr: false,
 });
 
@@ -51,5 +52,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Home() {
-  return <HomePage />;
+  return <Page />;
 }
