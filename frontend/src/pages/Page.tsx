@@ -24,7 +24,7 @@ import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
 import { createSCWSigner, createEphemeralSigner, createEOASigner } from "@/lib/xmtp";
 import { clearWagmiCookies } from "@/lib/wagmi";
-import { generatePrivateKey } from "viem/accounts";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 // Define the ClientOptions type locally to fix the error
 type ClientOptions = {
@@ -77,6 +77,7 @@ const PageWithNoSSR = dynamic(
         
         // Connection State
         const [connectionType, setConnectionType] = useState<string>("");
+        const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
 
         // Initialize XMTP client with wallet signer
         const initializeXmtp = useCallback((signer: any) => {
@@ -147,6 +148,10 @@ const PageWithNoSSR = dynamic(
             setErrorMessage(null);
             setConnectionType("Ephemeral Wallet");
             const privateKey = generatePrivateKey();
+            
+            // Generate and store the address from the private key
+            const account = privateKeyToAccount(privateKey);
+            setEphemeralAddress(account.address);
             
             const connect = async () => {
               try {
@@ -548,7 +553,7 @@ const PageWithNoSSR = dynamic(
         return (
           <SafeAreaContainer insets={insets}>
             <div className="flex flex-col gap-0 pb-1 w-full max-w-md mx-auto h-screen bg-black transition-all duration-300">
-              <Header />
+              <Header isConnected={isConnected} onLogout={isConnected ? () => void handleLogout() : undefined} />
               {initializing ? (
                 <FullPageLoader />
               ) : (
@@ -558,7 +563,13 @@ const PageWithNoSSR = dynamic(
                     <div className="text-gray-400 text-xs mt-1">
                       <p><span className="text-gray-500">Connected:</span> {isConnected ? "Yes" : "No"}</p>
                       <p><span className="text-gray-500">Type:</span> {connectionType || "Not connected"}</p>
-                      <p><span className="text-gray-500">Address:</span> {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "None"}</p>
+                      <p><span className="text-gray-500">Address:</span> {
+                        connectionType === "Ephemeral Wallet" && ephemeralAddress 
+                          ? `${ephemeralAddress.slice(0, 6)}...${ephemeralAddress.slice(-4)}` 
+                          : address 
+                            ? `${address.slice(0, 6)}...${address.slice(-4)}` 
+                            : "None"
+                      }</p>
                       {client && <p><span className="text-gray-500">XMTP:</span> <span className="text-green-500">Connected</span></p>}
                     </div>
                   </div>
@@ -577,7 +588,7 @@ const PageWithNoSSR = dynamic(
                   
                   {/* Authentication Buttons */}
                   <div className="w-full flex flex-col gap-3 mt-2">
-                    {!isConnected ? (
+                    {!client ? (
                       <>
                         <Button 
                           className="w-full" 
@@ -602,14 +613,6 @@ const PageWithNoSSR = dynamic(
                       </>
                     ) : (
                       <>
-                        {/* Logout Button */}
-                        <Button
-                          className="w-full"
-                          size="lg"
-                          onClick={() => void handleLogout()}>
-                          Logout
-                        </Button>
-                        
                         {/* Group Chat Button */}
                         <Button
                           className="w-full"
