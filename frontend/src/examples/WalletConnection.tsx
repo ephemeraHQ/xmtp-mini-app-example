@@ -15,47 +15,102 @@ import {  createEphemeralSigner, createEOASigner, createSignerForCoinbaseSmartWa
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
 const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
 const XMTP_INITIALIZING = "xmtp:initializing";
+const XMTP_INIT_TIMESTAMP = "xmtp:initTimestamp";
 
 export default function WalletConnection() {
-  const { initialize, initializing, client } = useXMTP();
+  const { initialize, initializing, client, error } = useXMTP();
   const { data: walletData } = useWalletClient();
   const { connect } = useConnect();
   const { isConnected, connector } = useAccount();
   
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
+  const [localInitializing, setLocalInitializing] = useState(false);
 
   // Initialize XMTP client with wallet signer
   const initializeXmtp = useCallback(async (signer: any) => {
     // Prevent duplicate initialization
-    if (initializing || sessionStorage.getItem(XMTP_INITIALIZING) === 'true') {
+    if (initializing || localInitializing) {
       console.log("XMTP initialization already in progress");
       return;
     }
     
-    // Set initializing flag
+    // Check for stale initialization flag
+    const initTimestamp = sessionStorage.getItem(XMTP_INIT_TIMESTAMP);
+    if (initTimestamp) {
+      const now = Date.now();
+      const elapsed = now - parseInt(initTimestamp, 10);
+      
+      // If it's been more than 30 seconds, clear the flag
+      if (elapsed > 30000) {
+        console.log("Clearing stale initialization flag");
+        sessionStorage.removeItem(XMTP_INITIALIZING);
+        sessionStorage.removeItem(XMTP_INIT_TIMESTAMP);
+      } else if (sessionStorage.getItem(XMTP_INITIALIZING) === 'true') {
+        console.log("XMTP initialization flag active and recent");
+        return;
+      }
+    }
+    
+    // Set initializing flags
+    setLocalInitializing(true);
     sessionStorage.setItem(XMTP_INITIALIZING, 'true');
+    sessionStorage.setItem(XMTP_INIT_TIMESTAMP, Date.now().toString());
     
-    console.log("Initializing XMTP with signer");
-    await initialize({
-      dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
-      env: env.NEXT_PUBLIC_XMTP_ENV,
-      loggingLevel: "off",
-      signer,
-    });
-    
-    // Clear initializing flag
-    sessionStorage.removeItem(XMTP_INITIALIZING);
+    try {
+      console.log("Initializing XMTP with signer");
+      await initialize({
+        dbEncryptionKey: hexToUint8Array(env.NEXT_PUBLIC_ENCRYPTION_KEY),
+        env: env.NEXT_PUBLIC_XMTP_ENV,
+        loggingLevel: "off",
+        signer,
+      });
+    } catch (error) {
+      console.error("Error initializing XMTP:", error);
+      
+      // If there was a signature error, clear stored connection type to prevent loops
+      if (error && (error as any).message?.includes("Signature")) {
+        console.log("Signature error detected, clearing connection type to prevent loops");
+        localStorage.removeItem(XMTP_CONNECTION_TYPE_KEY);
+        setConnectionType("");
+      }
+    } finally {
+      // Clear initializing flags
+      sessionStorage.removeItem(XMTP_INITIALIZING);
+      sessionStorage.removeItem(XMTP_INIT_TIMESTAMP);
+      setLocalInitializing(false);
+    }
   }, [initialize, initializing]);
 
   // Load saved connection on mount
   useEffect(() => {
+    // Don't restore if already initialized or currently initializing
+    if (client || initializing || localInitializing) return;
+    
+    // Don't try to restore if we have an error
+    if (error) {
+      console.log("Error detected, not restoring connection:", error);
+      return;
+    }
+    
     // Clear any stale flags
-    sessionStorage.removeItem(XMTP_INITIALIZING);
+    const initTimestamp = sessionStorage.getItem(XMTP_INIT_TIMESTAMP);
+    if (initTimestamp) {
+      const now = Date.now();
+      const elapsed = now - parseInt(initTimestamp, 10);
+      
+      if (elapsed > 30000) {
+        sessionStorage.removeItem(XMTP_INITIALIZING);
+        sessionStorage.removeItem(XMTP_INIT_TIMESTAMP);
+      } else if (sessionStorage.getItem(XMTP_INITIALIZING) === 'true') {
+        console.log("XMTP initialization in progress, not restoring");
+        return;
+      }
+    }
 
     // Check for existing connection
     const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
-    if (!savedConnectionType || client) return;
+    if (!savedConnectionType) return;
     
     console.log(`Restoring connection: ${savedConnectionType}`);
     setConnectionType(savedConnectionType);
@@ -86,7 +141,7 @@ export default function WalletConnection() {
         ));
       }
     }
-  }, [client, initializeXmtp, isConnected, walletData, connector]);
+  }, [client, initializeXmtp, isConnected, walletData, connector, initializing, localInitializing, error]);
 
   // Watch for wallet data becoming available to complete initialization
   useEffect(() => {
@@ -95,22 +150,28 @@ export default function WalletConnection() {
     const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
     if (!savedConnectionType) return;
     
+    // Don't try to initialize if we have an error
+    if (error) {
+      console.log("Error detected, not initializing XMTP:", error);
+      return;
+    }
+    
     console.log(`Wallet data available for ${savedConnectionType}, initializing XMTP`);
     
     if (savedConnectionType === "EOA Wallet") {
       initializeXmtp(createEOASigner(walletData.account.address, walletData));
-    }  else if (savedConnectionType === "Coinbase Smart Wallet") {
+    } else if (savedConnectionType === "Coinbase Smart Wallet" && connector?.id === 'coinbaseWalletSDK') {
       initializeXmtp(createSignerForCoinbaseSmartWallet(
         walletData.account.address,
         walletData,
         BigInt(mainnet.id)
       ));
     }
-  }, [walletData, client, initializing, isConnected, initializeXmtp]);
+  }, [walletData, client, initializing, localInitializing, isConnected, initializeXmtp, error, connector]);
 
   // Connect with EOA wallet
   const connectWithEOA = useCallback(() => {
-    if (initializing) return;
+    if (initializing || localInitializing) return;
     
     setConnectionType("EOA Wallet");
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
@@ -120,11 +181,11 @@ export default function WalletConnection() {
     } else {
       connect({ connector: injected() });
     }
-  }, [connect, walletData, initializeXmtp, isConnected, initializing]);
+  }, [connect, walletData, initializeXmtp, isConnected, initializing, localInitializing]);
 
   // Connect with Ephemeral Wallet
   const connectWithEphemeral = useCallback(() => {
-    if (initializing) return;
+    if (initializing || localInitializing) return;
     
     setConnectionType("Ephemeral Wallet");
     
@@ -136,12 +197,15 @@ export default function WalletConnection() {
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Ephemeral Wallet");
     
     initializeXmtp(createEphemeralSigner(privateKey));
-  }, [initializeXmtp, initializing]);
+  }, [initializeXmtp, initializing, localInitializing]);
 
- 
   // Connect with Coinbase Smart Wallet
   const connectWithCoinbaseSmartWallet = useCallback(() => {
-    if (initializing) return;
+    if (initializing || localInitializing) return;
+    
+    // Clear any previous errors that might have accumulated
+    sessionStorage.removeItem(XMTP_INITIALIZING);
+    sessionStorage.removeItem(XMTP_INIT_TIMESTAMP);
     
     setConnectionType("Coinbase Smart Wallet");
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Smart Wallet");
@@ -160,7 +224,7 @@ export default function WalletConnection() {
         }) 
       });
     }
-  }, [connect, initializing, walletData, isConnected, connector, initializeXmtp]);
+  }, [connect, initializing, localInitializing, walletData, isConnected, connector, initializeXmtp]);
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -169,8 +233,8 @@ export default function WalletConnection() {
           className="w-full" 
           size="lg" 
           onClick={connectWithEOA}
-          disabled={initializing}>
-          {initializing && connectionType === "EOA Wallet" 
+          disabled={initializing || localInitializing}>
+          {(initializing || localInitializing) && connectionType === "EOA Wallet" 
             ? "Connecting EOA Wallet..." 
             : "Connect with EOA Wallet"}
         </Button>
@@ -179,19 +243,18 @@ export default function WalletConnection() {
           className="w-full" 
           size="lg" 
           onClick={connectWithEphemeral}
-          disabled={initializing}>
-          {initializing && connectionType === "Ephemeral Wallet" 
+          disabled={initializing || localInitializing}>
+          {(initializing || localInitializing) && connectionType === "Ephemeral Wallet" 
             ? "Connecting Ephemeral Wallet..." 
             : "Connect with Ephemeral Wallet"}
         </Button>
        
-
         <Button 
           className="w-full" 
           size="lg" 
           onClick={connectWithCoinbaseSmartWallet}
-          disabled={initializing}>
-          {initializing && connectionType === "Coinbase Smart Wallet" 
+          disabled={initializing || localInitializing}>
+          {(initializing || localInitializing) && connectionType === "Coinbase Smart Wallet" 
             ? "Connecting Coinbase Smart Wallet..." 
             : "Connect with Coinbase Smart Wallet"}
         </Button>

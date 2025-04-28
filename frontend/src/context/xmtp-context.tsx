@@ -122,10 +122,14 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
   const [groupConversation, setGroupConversation] = useState<Group | null>(null);
   const [initializing, setInitializing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [signatureAttempts, setSignatureAttempts] = useState(0);
 
   // Debug logging on mount
   useEffect(() => {
     logger.log("Provider mounted");
+    return () => {
+      logger.log("Provider unmounted");
+    };
   }, []);
 
   // Reset conversations when client changes
@@ -164,11 +168,19 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
         logger.log("XMTP client initialization already in progress, returning undefined");
         return undefined;
       }
+      
+      // Check signature attempt threshold
+      if (signatureAttempts >= 3) {
+        logger.error("Too many signature attempts, not trying again");
+        setError(new Error("Too many signature attempts"));
+        return undefined;
+      }
 
       // Set initializing state
       logger.log("Setting initializing state");
       setError(null);
       setInitializing(true);
+      setSignatureAttempts(prev => prev + 1);
 
       try {
         // Mark as connected in localStorage
@@ -183,10 +195,24 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
           dbEncryptionKey,
         };
 
-        // Create the client
+        // Create the client with a timeout to prevent hanging
         logger.log("Calling Client.create - this will prompt for signature");
-        const xmtpClient = await Client.create(signer, clientOptions);
+        
+        // Create a promise with timeout
+        const clientPromise = Promise.race([
+          Client.create(signer, clientOptions),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error("Signature request timed out"));
+            }, 60000); // 60 second timeout
+          }),
+        ]);
+        
+        const xmtpClient = await clientPromise as Client;
         logger.log("XMTP client created successfully");
+        
+        // Reset signature attempts counter on success
+        setSignatureAttempts(0);
         
         // Perform initial sync
         logger.log("Syncing conversations...");
@@ -201,14 +227,23 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       } catch (e) {
         logger.error("Error creating XMTP client", e);
         setClient(undefined);
-        setError(e as Error);
+        
+        // Format and set the error
+        const errorMessage = e instanceof Error ? e.message : "Unknown error";
+        setError(new Error(errorMessage));
+        
+        // If it's a signature error, we'll need to handle it specially
+        if (errorMessage.includes("Signature")) {
+          logger.error("Signature error", errorMessage);
+        }
+        
         throw e;
       } finally {
         logger.log("Setting initializing to false");
         setInitializing(false);
       }
     },
-    [client, initializing],
+    [client, initializing, signatureAttempts],
   );
 
   /**
@@ -225,6 +260,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       setClient(undefined);
       setConversations([]);
       setError(null);
+      setSignatureAttempts(0);
       
       // Clear XMTP storage
       const removedCount = storage.clearXMTPItems();
@@ -248,7 +284,15 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       groupConversation,
       setGroupConversation,
     }),
-    [client, initialize, initializing, error, disconnect, conversations, groupConversation],
+    [
+      client,
+      initialize,
+      initializing,
+      error,
+      disconnect,
+      conversations,
+      groupConversation,
+    ],
   );
 
   return <XMTPContext.Provider value={value}>{children}</XMTPContext.Provider>;
