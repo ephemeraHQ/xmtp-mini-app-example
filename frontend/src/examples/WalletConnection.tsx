@@ -2,27 +2,36 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { hexToUint8Array } from "uint8array-extras";
+import { injected, useConnect, useWalletClient, useAccount } from "wagmi";
+import { coinbaseWallet } from "wagmi/connectors";
 import { mainnet } from "viem/chains";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
-import { createOnchainKitSigner } from "@/lib/xmtp";
+import { createEphemeralSigner, createEOASigner, createOnchainKitSigner } from "@/lib/xmtp";
 
 // OnchainKit imports
 import { Wallet, ConnectWallet, WalletDropdown, WalletDropdownDisconnect } from "@coinbase/onchainkit/wallet";
 import { Avatar, Name, Address, Identity } from "@coinbase/onchainkit/identity";
-import { useAccount, useSignMessage } from "wagmi";
+import { useSignMessage } from "wagmi";
 
 // Simple local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
+const XMTP_EPHEMERAL_KEY = "xmtp:ephemeralKey";
 const XMTP_INITIALIZING = "xmtp:initializing";
 const XMTP_INIT_TIMESTAMP = "xmtp:initTimestamp";
 
 export default function WalletConnection() {
   const { initialize, initializing, client, error } = useXMTP();
+  const { data: walletData } = useWalletClient();
+  const { connect } = useConnect();
+  const { isConnected, connector } = useAccount();
   const { address } = useAccount();
   const { signMessageAsync } = useSignMessage();
   
   const [connectionType, setConnectionType] = useState<string>("");
+  const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
   const [localInitializing, setLocalInitializing] = useState(false);
 
   // Initialize XMTP client with wallet signer
@@ -80,34 +89,14 @@ export default function WalletConnection() {
     }
   }, [initialize, initializing]);
 
-  // Effect to initialize XMTP when Smart Contract Wallet is connected
-  useEffect(() => {
-    // If no address or signer, or already initialized, skip
-    if (!address || !signMessageAsync || initializing || localInitializing || client) return;
-    
-    // Check if we should initialize with Smart Contract Wallet
-    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
-    if (savedConnectionType === "Smart Contract Wallet") {
-      console.log("Initializing with Smart Contract Wallet", address);
-      
-      const signer = createOnchainKitSigner(
-        address,
-        signMessageAsync,
-        BigInt(mainnet.id)
-      );
-      
-      initializeXmtp(signer);
-    }
-  }, [address, signMessageAsync, client, initializeXmtp, initializing, localInitializing]);
-
-  // Comprehensive watcher for wallet connection state changes
+  // Comprehensive watcher for wallet connection state changes - for Smart Contract Wallet
   useEffect(() => {
     // If wallet is connected, XMTP is not initialized, and we're not currently initializing
     if (address && signMessageAsync && !client && !initializing && !localInitializing) {
       // Only proceed if we have a saved connection type
       const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
       if (savedConnectionType === "Smart Contract Wallet") {
-        console.log("Wallet detected but XMTP not initialized, attempting initialization", {
+        console.log("Smart Contract Wallet detected but XMTP not initialized, attempting initialization", {
           address,
           connectionType: savedConnectionType,
         });
@@ -126,15 +115,45 @@ export default function WalletConnection() {
     }
   }, [address, signMessageAsync, client, initializing, localInitializing, initializeXmtp]);
 
+  // Connect with EOA wallet
+  const connectWithEOA = useCallback(() => {
+    if (initializing || localInitializing) return;
+    
+    setConnectionType("EOA Wallet");
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
+    
+    if (isConnected && walletData) {
+      initializeXmtp(createEOASigner(walletData.account.address, walletData));
+    } else {
+      connect({ connector: injected() });
+    }
+  }, [connect, walletData, initializeXmtp, isConnected, initializing, localInitializing]);
+
+  // Connect with Ephemeral Wallet
+  const connectWithEphemeral = useCallback(() => {
+    if (initializing || localInitializing) return;
+    
+    setConnectionType("Ephemeral Wallet");
+    
+    const privateKey = generatePrivateKey();
+    const account = privateKeyToAccount(privateKey);
+    setEphemeralAddress(account.address);
+    
+    localStorage.setItem(XMTP_EPHEMERAL_KEY, privateKey);
+    localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Ephemeral Wallet");
+    
+    initializeXmtp(createEphemeralSigner(privateKey));
+  }, [initializeXmtp, initializing, localInitializing]);
+
   // This is called when the wallet connects via OnchainKit
-  const handleWalletConnect = useCallback(async () => {
+  const handleSmartContractWallet = useCallback(async () => {
     console.log("Smart Contract Wallet connected through OnchainKit");
     setConnectionType("Smart Contract Wallet");
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Smart Contract Wallet");
     
     // Check if we can initialize immediately
     if (address && signMessageAsync && !initializing && !localInitializing && !client) {
-      console.log("Initializing XMTP immediately after wallet connection", address);
+      console.log("Initializing XMTP immediately after Smart Contract Wallet connection", address);
       try {
         const signer = createOnchainKitSigner(
           address,
@@ -147,7 +166,7 @@ export default function WalletConnection() {
         console.error("Error initializing with Smart Contract Wallet:", error);
       }
     } else {
-      console.log("Will initialize XMTP when address becomes available", {
+      console.log("Will initialize Smart Contract Wallet when address becomes available", {
         hasAddress: !!address,
         hasSignMessage: !!signMessageAsync,
         isInitializing: initializing || localInitializing,
@@ -156,22 +175,92 @@ export default function WalletConnection() {
     }
   }, [address, signMessageAsync, client, initializeXmtp, initializing, localInitializing]);
 
-  return (
-    <div className="w-full flex flex-col items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-semibold mb-2">Connect Your Smart Contract Wallet</h2>
-          <p className="text-sm text-gray-600">
-            Connect your Smart Contract Wallet to start using XMTP messaging
-          </p>
-        </div>
+  // Watch for wallet data becoming available to complete initialization
+  useEffect(() => {
+    if (!walletData || client || initializing || !isConnected) return;
+    
+    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+    if (!savedConnectionType) return;
+    
+    // Don't try to initialize if we have an error
+    if (error) {
+      console.log("Error detected, not initializing XMTP:", error);
+      return;
+    }
+    
+    console.log(`Wallet data available for ${savedConnectionType}, initializing XMTP`);
+    
+    if (savedConnectionType === "EOA Wallet") {
+      initializeXmtp(createEOASigner(walletData.account.address, walletData));
+    } else if (savedConnectionType === "Coinbase Smart Wallet" && connector?.id === 'coinbaseWalletSDK') {
+      initializeXmtp(createOnchainKitSigner(
+        walletData.account.address,
+        signMessageAsync!,
+        BigInt(mainnet.id)
+      ));
+    }
+  }, [walletData, client, initializing, localInitializing, isConnected, initializeXmtp, error, connector, signMessageAsync]);
+
+  // Load saved connection on mount for ephemeral wallet only
+  useEffect(() => {
+    // Don't restore if already initialized or currently initializing
+    if (client || initializing || localInitializing) return;
+    
+    // Don't try to restore if we have an error
+    if (error) {
+      console.log("Error detected, not restoring connection:", error);
+      return;
+    }
+    
+    // Clear any stale flags
+    const initTimestamp = sessionStorage.getItem(XMTP_INIT_TIMESTAMP);
+    if (initTimestamp) {
+      const now = Date.now();
+      const elapsed = now - parseInt(initTimestamp, 10);
+      
+      if (elapsed > 30000) {
+        sessionStorage.removeItem(XMTP_INITIALIZING);
+        sessionStorage.removeItem(XMTP_INIT_TIMESTAMP);
+      } else if (sessionStorage.getItem(XMTP_INITIALIZING) === 'true') {
+        console.log("XMTP initialization in progress, not restoring");
+        return;
+      }
+    }
+
+    // Check for existing connection
+    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
+    if (!savedConnectionType) return;
+    
+    console.log(`Restoring connection: ${savedConnectionType}`);
+    setConnectionType(savedConnectionType);
+
+    // Handle Ephemeral wallet connection restoration
+    if (savedConnectionType === "Ephemeral Wallet") {
+      const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
+      if (savedPrivateKey) {
+        const formattedKey = savedPrivateKey.startsWith('0x') 
+          ? savedPrivateKey as `0x${string}` 
+          : `0x${savedPrivateKey}` as `0x${string}`;
         
-        <div className="w-full p-4 bg-white rounded-xl shadow-md">
+        const account = privateKeyToAccount(formattedKey);
+        setEphemeralAddress(account.address);
+        
+        initializeXmtp(createEphemeralSigner(formattedKey));
+      }
+    }
+    // Note: Other wallet connections will be restored when wallet reconnects
+  }, [client, initializeXmtp, initializing, localInitializing, error]);
+
+  return (
+    <div className="w-full flex flex-col gap-4">
+      <div className="w-full flex flex-col gap-3 mt-2">
+        {/* Smart Contract Wallet */}
+        <div className="w-full mb-2">
           <Wallet>
             <ConnectWallet 
-              disconnectedLabel="Connect Smart Contract Wallet"
+              disconnectedLabel="Connect with Smart Contract Wallet"
               className="w-full py-3 px-4 rounded-xl font-medium text-base bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-              onConnect={handleWalletConnect}
+              onConnect={handleSmartContractWallet}
             >
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6" />
@@ -192,61 +281,46 @@ export default function WalletConnection() {
           </Wallet>
         </div>
         
-        {/* Connection status display */}
-        <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-          <h3 className="text-lg font-medium mb-3">Connection Status</h3>
-          
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span>Wallet Connected:</span>
-              <span className={`font-medium ${address ? 'text-green-600' : 'text-gray-400'}`}>
-                {address ? 'Yes' : 'No'}
-              </span>
+        {/* EOA Wallet Button */}
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={connectWithEOA}
+          disabled={initializing || localInitializing}>
+          {(initializing || localInitializing) && connectionType === "EOA Wallet" 
+            ? "Connecting EOA Wallet..." 
+            : "Connect with EOA Wallet"}
+        </Button>
+        
+        {/* Ephemeral Wallet Button */}
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={connectWithEphemeral}
+          disabled={initializing || localInitializing}>
+          {(initializing || localInitializing) && connectionType === "Ephemeral Wallet" 
+            ? "Connecting Ephemeral Wallet..." 
+            : "Connect with Ephemeral Wallet"}
+        </Button>
+        
+        {/* Connection status - collapsible */}
+        {(initializing || localInitializing || error) && (
+          <div className="mt-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex justify-between items-center">
+              <h4 className="text-sm font-medium">Connection Status</h4>
             </div>
             
-            <div className="flex items-center justify-between">
-              <span>XMTP Initialized:</span>
-              <span className={`font-medium ${client ? 'text-green-600' : 'text-gray-400'}`}>
-                {client ? 'Yes' : 'No'}
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span>Initializing:</span>
-              <span className={`font-medium ${(initializing || localInitializing) ? 'text-yellow-600' : 'text-gray-400'}`}>
-                {(initializing || localInitializing) ? 'In Progress' : 'No'}
-              </span>
-            </div>
+            {(initializing || localInitializing) && (
+              <div className="mt-2 text-sm text-gray-600">
+                Connecting to XMTP network...
+              </div>
+            )}
             
             {error && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600">
+              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
                 Error: {error.message || 'An unknown error occurred'}
               </div>
             )}
-          </div>
-          
-          {address && !client && !initializing && !localInitializing && (
-            <button
-              onClick={() => {
-                if (address && signMessageAsync) {
-                  const signer = createOnchainKitSigner(
-                    address,
-                    signMessageAsync,
-                    BigInt(mainnet.id)
-                  );
-                  initializeXmtp(signer);
-                }
-              }}
-              className="mt-4 w-full py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-            >
-              Reinitialize XMTP
-            </button>
-          )}
-        </div>
-        
-        {(initializing || localInitializing) && (
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Connecting to XMTP network...
           </div>
         )}
       </div>
