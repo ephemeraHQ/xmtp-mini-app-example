@@ -9,7 +9,8 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
-import {  createEphemeralSigner, createEOASigner, createSignerForCoinbaseSmartWallet } from "@/lib/xmtp";
+import { useSignMessage } from "wagmi";
+import {  createEphemeralSigner, createEOASigner, createOnchainKitSigner } from "@/lib/xmtp";
 
 // Simple local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
@@ -22,10 +23,42 @@ export default function WalletConnection() {
   const { data: walletData } = useWalletClient();
   const { connect } = useConnect();
   const { isConnected, connector } = useAccount();
-  
+  const { signMessageAsync } = useSignMessage();
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
   const [localInitializing, setLocalInitializing] = useState(false);
+
+  // Get the appropriate signer based on connection type
+  const getSigner = useCallback(() => {
+    if (!connectionType) return null;
+
+    if (connectionType === "Ephemeral Wallet") {
+      const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
+      if (savedPrivateKey) {
+        const formattedKey = savedPrivateKey.startsWith('0x') 
+          ? savedPrivateKey as `0x${string}` 
+          : `0x${savedPrivateKey}` as `0x${string}`;
+        
+        return createEphemeralSigner(formattedKey);
+      }
+    } 
+    
+    if (!isConnected || !walletData) return null;
+    
+    if (connectionType === "EOA Wallet") {
+      return createEOASigner(walletData.account.address, walletData);
+    } 
+    
+    if (connectionType === "Coinbase Smart Wallet" && connector?.id === 'coinbaseWalletSDK') {
+      return createOnchainKitSigner(
+        walletData.account.address,
+        signMessageAsync,
+        BigInt(mainnet.id)
+      );
+    }
+    
+    return null;
+  }, [connectionType, isConnected, walletData, connector]);
 
   // Initialize XMTP client with wallet signer
   const initializeXmtp = useCallback(async (signer: any) => {
@@ -115,7 +148,7 @@ export default function WalletConnection() {
     console.log(`Restoring connection: ${savedConnectionType}`);
     setConnectionType(savedConnectionType);
 
-    // Handle each connection type
+    // Set ephemeral address if needed
     if (savedConnectionType === "Ephemeral Wallet") {
       const savedPrivateKey = localStorage.getItem(XMTP_EPHEMERAL_KEY);
       if (savedPrivateKey) {
@@ -125,30 +158,13 @@ export default function WalletConnection() {
         
         const account = privateKeyToAccount(formattedKey);
         setEphemeralAddress(account.address);
-        
-        initializeXmtp(createEphemeralSigner(formattedKey));
-      }
-    } else if (isConnected && walletData) {
-      // Handle wallet connections if already connected
-      if (savedConnectionType === "EOA Wallet") {
-        initializeXmtp(createEOASigner(walletData.account.address, walletData));
-      } else if (savedConnectionType === "Coinbase Smart Wallet" && 
-                 connector?.id === 'coinbaseWalletSDK') {
-        initializeXmtp(createSignerForCoinbaseSmartWallet(
-          walletData.account.address,
-          walletData,
-          BigInt(mainnet.id)
-        ));
       }
     }
-  }, [client, initializeXmtp, isConnected, walletData, connector, initializing, localInitializing, error]);
+  }, [client, initializing, localInitializing, error]);
 
-  // Watch for wallet data becoming available to complete initialization
+  // Attempt to initialize when connection type changes or wallet becomes available
   useEffect(() => {
-    if (!walletData || client || initializing || !isConnected) return;
-    
-    const savedConnectionType = localStorage.getItem(XMTP_CONNECTION_TYPE_KEY);
-    if (!savedConnectionType) return;
+    if (!connectionType || client || initializing || localInitializing) return;
     
     // Don't try to initialize if we have an error
     if (error) {
@@ -156,18 +172,15 @@ export default function WalletConnection() {
       return;
     }
     
-    console.log(`Wallet data available for ${savedConnectionType}, initializing XMTP`);
-    
-    if (savedConnectionType === "EOA Wallet") {
-      initializeXmtp(createEOASigner(walletData.account.address, walletData));
-    } else if (savedConnectionType === "Coinbase Smart Wallet" && connector?.id === 'coinbaseWalletSDK') {
-      initializeXmtp(createSignerForCoinbaseSmartWallet(
-        walletData.account.address,
-        walletData,
-        BigInt(mainnet.id)
-      ));
+    const signer = getSigner();
+    if (signer) {
+      console.log(`Initializing XMTP with ${connectionType} signer`);
+      initializeXmtp(signer);
+    } else if (connectionType !== "Ephemeral Wallet" && !isConnected) {
+      // For wallet connections, we need to connect first
+      console.log(`Need to connect wallet for ${connectionType}`);
     }
-  }, [walletData, client, initializing, localInitializing, isConnected, initializeXmtp, error, connector]);
+  }, [connectionType, client, initializing, localInitializing, isConnected, walletData, connector, getSigner, initializeXmtp, error]);
 
   // Connect with EOA wallet
   const connectWithEOA = useCallback(() => {
@@ -176,12 +189,10 @@ export default function WalletConnection() {
     setConnectionType("EOA Wallet");
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "EOA Wallet");
     
-    if (isConnected && walletData) {
-      initializeXmtp(createEOASigner(walletData.account.address, walletData));
-    } else {
+    if (!isConnected) {
       connect({ connector: injected() });
     }
-  }, [connect, walletData, initializeXmtp, isConnected, initializing, localInitializing]);
+  }, [connect, isConnected, initializing, localInitializing]);
 
   // Connect with Ephemeral Wallet
   const connectWithEphemeral = useCallback(() => {
@@ -209,14 +220,8 @@ export default function WalletConnection() {
     
     setConnectionType("Coinbase Smart Wallet");
     localStorage.setItem(XMTP_CONNECTION_TYPE_KEY, "Coinbase Smart Wallet");
-    
-    if (isConnected && walletData && connector?.id === 'coinbaseWalletSDK') {
-      initializeXmtp(createSignerForCoinbaseSmartWallet(
-        walletData.account.address,
-        walletData,
-        BigInt(mainnet.id)
-      ));
-    } else {
+
+    if (!isConnected || connector?.id !== 'coinbaseWalletSDK') {
       connect({ 
         connector: coinbaseWallet({
           appName: "XMTP Mini App",
@@ -224,7 +229,7 @@ export default function WalletConnection() {
         }) 
       });
     }
-  }, [connect, initializing, localInitializing, walletData, isConnected, connector, initializeXmtp]);
+  }, [connect, initializing, localInitializing, isConnected, connector]);
 
   return (
     <div className="w-full flex flex-col gap-4">
