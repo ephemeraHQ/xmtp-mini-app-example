@@ -4,7 +4,8 @@ import { base, mainnet } from "viem/chains";
 import { cookieStorage, createConfig, createStorage, http, cookieToInitialState, type Config } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { coinbaseWallet } from "wagmi/connectors";
+import { OnchainKitProvider } from "@coinbase/onchainkit";
 import React from "react";
 
 const chains = [mainnet, base] as const;
@@ -35,8 +36,13 @@ export const wagmiConfig = createConfig({
     [mainnet.id]: http("https://mainnet.llamarpc.com"),
     [base.id]: http("https://base.llamarpc.com"),
   },
-  // Add the injected connector for wallet connections
-  connectors: [injected()],
+  // Configure for smart contract wallets
+  connectors: [
+    coinbaseWallet({
+      appName: "XMTP Mini App",
+      preference: { options: "smartWalletOnly" } // Force smart wallet only
+    }),
+  ],
 });
 
 // Create query client for React Query
@@ -56,7 +62,11 @@ export const CustomWagmiProvider = ({
 
   return (
     <WagmiProvider config={wagmiConfig as Config} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <OnchainKitProvider chain={mainnet}>
+          {children}
+        </OnchainKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }; 

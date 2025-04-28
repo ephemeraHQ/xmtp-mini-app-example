@@ -169,3 +169,56 @@ export const createSignerForCoinbaseSmartWallet = (
     },
   };
 };
+
+/**
+ * Creates a browser compatible signer that works with XMTP using OnchainKit
+ * This implementation is specifically designed for Smart Contract Wallets
+ */
+export const createOnchainKitSigner = (
+  address: `0x${string}`,
+  signMessageAsync: (args: { message: string }) => Promise<`0x${string}`>,
+  chainId: bigint | number = 1,
+): Signer => {
+  console.log("Creating Smart Contract Wallet signer for address:", address);
+  
+  return {
+    // Mark this as a Smart Contract Wallet signer
+    type: "SCW",
+    getIdentifier: () => ({
+      identifier: address.toLowerCase(),
+      identifierKind: "Ethereum",
+    }),
+    signMessage: async (message: string) => {
+      const cacheKey = createCacheKey(address, message);
+      
+      // Check if we have a cached signature
+      if (signatureCache[cacheKey]) {
+        console.log("Using cached Smart Contract Wallet signature");
+        return signatureCache[cacheKey];
+      }
+      
+      // Sign the message using the smart contract wallet
+      console.log("Smart Contract Wallet signing message");
+      try {
+        const signature = await signMessageAsync({ message });
+        console.log("Smart Contract Wallet signature received:", signature);
+        
+        const signatureBytes = toBytes(signature);
+        console.log("Signature bytes length:", signatureBytes.length);
+        
+        // Cache the signature
+        signatureCache[cacheKey] = signatureBytes;
+        
+        return signatureBytes;
+      } catch (error) {
+        console.error("Error in Smart Contract Wallet signMessage:", error);
+        throw error;
+      }
+    },
+    // Include getChainId for SCW compatibility
+    getChainId: () => {
+      console.log("SCW getChainId called, value:", chainId);
+      return typeof chainId === 'undefined' ? BigInt(1) : BigInt(chainId.toString());
+    },
+  };
+};
