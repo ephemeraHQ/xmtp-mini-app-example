@@ -258,26 +258,13 @@ export default function WalletConnection() {
         <div className="w-full mb-2">
           <Wallet>
             <ConnectWallet 
-              disconnectedLabel="Connect with Smart Contract Wallet"
-              className="w-full py-3 px-4 rounded-xl font-medium text-base bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+              disconnectedLabel="Connect Smart Contract Wallet"
+              className="w-full mb-2" 
               onConnect={handleSmartContractWallet}
             >
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6" />
-                <Name />
-              </div>
+           
             </ConnectWallet>
-            <WalletDropdown>
-              <Identity 
-                className="px-4 pt-3 pb-2 hover:bg-gray-50" 
-                hasCopyAddressOnClick
-              >
-                <Avatar />
-                <Name />
-                <Address className="text-gray-500 text-sm" />
-              </Identity>
-              <WalletDropdownDisconnect className="hover:bg-gray-50" />
-            </WalletDropdown>
+       
           </Wallet>
         </div>
         
