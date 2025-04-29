@@ -15,7 +15,6 @@ export default function ExamplePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
-  const [activeExample, setActiveExample] = useState<"group" | "bot">("group");
 
   // Mark as mounted on client-side
   useEffect(() => {
@@ -62,39 +61,15 @@ export default function ExamplePage() {
             
             {client && (
               <>
-                {/* Example Selector */}
-                <div className="w-full bg-gray-900 p-3 rounded-md">
-                  <h2 className="text-white text-sm font-medium mb-2">Examples</h2>
-                  <div className="flex gap-2">
-                    <button
-                      className={`px-3 py-1 text-xs rounded-md ${
-                        activeExample === "group" 
-                          ? "bg-blue-600 text-white" 
-                          : "bg-gray-800 text-gray-300"
-                      }`}
-                      onClick={() => setActiveExample("group")}
-                    >
-                      Group Chat
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-xs rounded-md ${
-                        activeExample === "bot" 
-                          ? "bg-blue-600 text-white" 
-                          : "bg-gray-800 text-gray-300"
-                      }`}
-                      onClick={() => setActiveExample("bot")}
-                    >
-                      Bot Chat
-                    </button>
-                  </div>
+                <div className="w-full">
+                  <h2 className="text-white text-sm font-medium mb-2">Group Chat</h2>
+                  <GroupChat />
                 </div>
                 
-                {/* Display the selected example */}
-                {activeExample === "group" ? (
-                  <GroupChat />
-                ) : (
+                <div className="w-full mt-6">
+                  <h2 className="text-white text-sm font-medium mb-2">Bot Chat</h2>
                   <BotChat />
-                )}
+                </div>
               </>
             )}
           </div>
