@@ -81,7 +81,7 @@ export const createEOASigner = (
 
 
 
-export const createOnchainKitSigner = (   
+export const createSCWSigner = (   
   address: `0x${string}`,
   signMessageAsync: (args: { message: string }) => Promise<`0x${string}`>,
   chainId: bigint | number = 1,

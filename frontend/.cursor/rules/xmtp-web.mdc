@@ -13,7 +13,7 @@ alwaysApply: true
 - Select the right signer for your authentication method:
   - `createEOASigner` for standard wallet authentication
   - `createEphemeralSigner` for temporary sessions
-  - `createOnchainKitSigner` for smart contract wallets
+  - `createSCWSigner` for smart contract wallets
 - Implement comprehensive error handling around client initialization
 - Add timeout handling for signature requests to prevent UI freezes
 - Store authentication state securely in localStorage with proper encryption
@@ -34,7 +34,7 @@ const client = await Client.create(signer, {
 - Create appropriate signers based on wallet type:
   - Use `createEOASigner` for EOA wallets (MetaMask, WalletConnect)
   - Use `createEphemeralSigner` for temporary sessions or testing
-  - Use `createOnchainKitSigner` for smart contract wallets
+  - Use `createSCWSigner` for smart contract wallets
 - Ensure signers implement the complete `Signer` interface
 - Include `getChainId` method for smart contract wallet signers
 - Verify wallet connection before signer creation
@@ -45,7 +45,7 @@ const client = await Client.create(signer, {
 const signer = createEOASigner(walletClient.account.address, walletClient);
 
 // Smart Contract Wallet signer implementation
-const signer = createOnchainKitSigner(
+const signer = createSCWSigner(
   walletClient.account.address,
   signMessageAsync,
   BigInt(chainId)

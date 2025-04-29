@@ -10,7 +10,7 @@ import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { env } from "@/lib/env";
 import { useSignMessage } from "wagmi";
-import {  createEphemeralSigner, createEOASigner, createOnchainKitSigner } from "@/lib/xmtp";
+import {  createEphemeralSigner, createEOASigner, createSCWSigner } from "@/lib/xmtp";
 
 // Simple local storage keys
 const XMTP_CONNECTION_TYPE_KEY = "xmtp:connectionType";
@@ -50,7 +50,7 @@ export default function WalletConnection() {
     } 
     
     if (connectionType === "Coinbase Smart Wallet" && connector?.id === 'coinbaseWalletSDK') {
-      return createOnchainKitSigner(
+      return createSCWSigner(
         walletData.account.address,
         signMessageAsync,
         BigInt(mainnet.id)
