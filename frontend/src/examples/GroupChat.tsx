@@ -256,25 +256,7 @@ export default function GroupManagement() {
             </span>
           </p>
         </div>
-        <Button
-          className="w-full mt-3"
-          size="sm"
-          onClick={isGroupJoined ? handleLeaveGroup : handleJoinGroup}
-          disabled={joining || isRefreshing || !client}>
-          {joining ? "Processing..." : isRefreshing ? "Refreshing..." : isGroupJoined ? "Leave Group" : "Join Group Chat"}
-        </Button>
-      </div>
-
-      {/* Group Chat Section - Only show when in a group */}
-      {client && isGroupJoined  && (
-        <div className="w-full bg-gray-900 p-3 rounded-md">
-          <div className="flex justify-between items-center">
-            <h2 className="text-white text-sm font-medium">Group Chat</h2>
-            <span className="text-gray-400 text-xs">
-              {groupName || "XMTP Group"}
-            </span>
-          </div>
-          
+        {client && isGroupJoined && (
           <div className="mt-3">
             <div className="relative">
               <input
@@ -301,8 +283,18 @@ export default function GroupManagement() {
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+
+       <Button
+          className="w-full mt-3"
+          size="sm"
+          onClick={isGroupJoined ? handleLeaveGroup : handleJoinGroup}
+          disabled={joining || isRefreshing || !client}>
+          {joining ? "Processing..." : isRefreshing ? "Refreshing..." : isGroupJoined ? "Leave Group" : "Join Group Chat"}
+        </Button>
+      </div>
+
+     
     </div>
   );
 }
