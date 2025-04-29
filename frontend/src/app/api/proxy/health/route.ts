@@ -3,27 +3,49 @@ import { NextResponse } from "next/server";
 import { env } from "@/lib/env";    
 
 export async function GET() {
+  const headers = {
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    'Pragma': 'no-cache',
+  };
+  
   try {
-    // Test if we can actually connect to the backend
-    const response = await ky.get(`${env.BACKEND_URL}/health`, { 
+    // Add timestamp to prevent caching
+    const timestamp = Date.now();
+    const url = `${env.BACKEND_URL}/health?t=${timestamp}`;
+    console.log("Checking backend health at:", url);
+    
+    // Set a short timeout to quickly detect if backend is down
+    const data = await ky.get(url, {
       timeout: 3000,
-      retry: 0
-    }).json();
+      retry: 0,
+      cache: 'no-store',
+      hooks: {
+        beforeRequest: [
+          request => {
+            request.headers.set('Cache-Control', 'no-cache');
+            request.headers.set('Pragma', 'no-cache');
+          }
+        ]
+      }
+    }).json() as { status?: string };
     
-    // Only return online if we got a proper response from the backend
+    console.log("Backend response data:", data);
+    
+    // Verify we got the expected "ok" in the response data
+    const isBackendHealthy = data?.status === "ok";
+    console.log("Backend health status:", isBackendHealthy ? "online" : "offline");
+    
     return NextResponse.json({ 
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      backend: "online"
-    });
+      status: isBackendHealthy ? "ok" : "error",
+      backend: isBackendHealthy ? "online" : "offline",
+      timestamp
+    }, { headers });
   } catch (error) {
-    // If we can't connect to the backend, return offline status
-    console.error("Backend health check failed:", error instanceof Error ? error.message : String(error));
-    
+    console.error("Backend ping failed:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ 
       status: "error",
-      timestamp: new Date().toISOString(),
-      backend: "offline"
-    });
+      backend: "offline",
+      timestamp: Date.now()
+    }, { headers });
   }
 } 

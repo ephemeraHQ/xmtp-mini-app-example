@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { useXMTP } from "@/context/xmtp-context";
-import { useBackendHealth } from "@/context/backend-health-context";
 import { env } from "@/lib/env";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -17,11 +16,11 @@ interface ConnectionInfoProps {
 
 export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoProps) {
   const { client, conversations } = useXMTP();
-  const { backendStatus } = useBackendHealth();
   const { isConnected, address, connector } = useAccount();
   const [connectionType, setConnectionType] = useState<string>("");
   const [ephemeralAddress, setEphemeralAddress] = useState<string>("");
   const [isActuallyConnected, setIsActuallyConnected] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<string>("");
   const [walletInfo, setWalletInfo] = useState<{
     provider?: string;
     isInApp?: boolean;
@@ -30,8 +29,22 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
     injectors?: string[];
   }>({});
 
+ 
+
+
   // Detect wallet environment and injectors
   useEffect(() => {
+    const checkBackendHealth = async () => {
+      try {
+        const response = await fetch("/api/proxy/health");
+        const data = await response.json();
+        console.log("Backend health:", data);
+        setBackendStatus(data.status === "ok" ? "online" : "offline");
+      } catch (error) {
+        console.error("Error checking backend health:", error);
+        setBackendStatus("offline");
+      }
+    };
     const detectEnvironment = () => {
       const info: {
         provider?: string;
@@ -109,6 +122,7 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
     };
 
     detectEnvironment();
+    checkBackendHealth();
   }, [connector]);
 
   // Get ephemeral wallet address if available
@@ -187,7 +201,7 @@ export default function ConnectionInfo({ onConnectionChange }: ConnectionInfoPro
         {client && <p><span className="text-gray-500">Conversations:</span> {conversations.length}</p>}
         <p>
           <span className="text-gray-500">Backend:</span>{" "}
-          {backendStatus === "online" ? (
+          {backendStatus === "online" ? ( 
             <span className="text-green-500">Online</span>
           ) : backendStatus === "offline" ? (
             <span className="text-red-500">Offline</span>

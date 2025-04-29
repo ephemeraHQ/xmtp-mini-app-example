@@ -4,11 +4,9 @@ import { useCallback, useState, useEffect } from "react";
 import { Group } from "@xmtp/browser-sdk";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
-import { useBackendHealth } from "@/context/backend-health-context";
 
 export default function GroupManagement() {
   const { client, conversations, setConversations, setGroupConversation } = useXMTP();
-  const { backendStatus } = useBackendHealth();
   
   // Group Chat State
   const [joining, setJoining] = useState(false);
@@ -183,12 +181,9 @@ export default function GroupManagement() {
     setIsRefreshing(true);
     
     try {
-      // Continue with regular refresh if backend is available
-      if (backendStatus === "online") {
-        await fetchGroupData();
-      }
+      await fetchGroupData();
     } catch (error) {
-      console.error("Error refreshing:", error);
+      console.error("Error refreshing group data:", error);
     } finally {
       setIsRefreshing(false);
     }
@@ -236,11 +231,10 @@ export default function GroupManagement() {
         </div>
         <div className="text-gray-400 text-xs mt-1">
           <p>
+
             <span className="text-gray-500">Status:</span> 
             {!client ? (
               <span className="text-yellow-500"> Not connected</span>
-            ) : backendStatus === "offline" ? (
-              <span className="text-red-500"> Backend is down</span>
             ) : isRefreshing ? (
               <span className="text-yellow-500"> Refreshing...</span>
             ) : joining ? (
@@ -266,7 +260,7 @@ export default function GroupManagement() {
           className="w-full mt-3"
           size="sm"
           onClick={isGroupJoined ? handleLeaveGroup : handleJoinGroup}
-          disabled={joining || isRefreshing || !client || backendStatus === "offline"}>
+          disabled={joining || isRefreshing || !client}>
           {joining ? "Processing..." : isRefreshing ? "Refreshing..." : isGroupJoined ? "Leave Group" : "Join Group Chat"}
         </Button>
       </div>

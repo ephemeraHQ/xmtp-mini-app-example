@@ -62,12 +62,10 @@ export default function ExamplePage() {
             {client && (
               <>
                 <div className="w-full">
-                  <h2 className="text-white text-sm font-medium mb-2">Group Chat</h2>
                   <GroupChat />
                 </div>
                 
                 <div className="w-full mt-6">
-                  <h2 className="text-white text-sm font-medium mb-2">Bot Chat</h2>
                   <BotChat />
                 </div>
               </>
