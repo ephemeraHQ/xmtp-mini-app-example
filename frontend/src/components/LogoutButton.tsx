@@ -1,14 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useDisconnect } from "wagmi";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
 import { clearWagmiCookies } from "@/providers/wagmi";
-import { useRouter } from "next/navigation";
 
 // Key XMTP storage keys
-const XMTP_KEYS = ["xmtp:hasConnected", "xmtp:connectionType", "xmtp:ephemeralKey"];
+const XMTP_KEYS = [
+  "xmtp:hasConnected",
+  "xmtp:connectionType",
+  "xmtp:ephemeralKey",
+];
 
 export default function LogoutButton() {
   const { disconnect: disconnectXmtp } = useXMTP();
@@ -27,15 +31,15 @@ export default function LogoutButton() {
       });
 
       // Clear XMTP keys
-      XMTP_KEYS.forEach(key => localStorage.removeItem(key));
-      
+      XMTP_KEYS.forEach((key) => localStorage.removeItem(key));
+
       // Clear all XMTP prefixed items
-      Object.keys(localStorage).forEach(key => {
+      Object.keys(localStorage).forEach((key) => {
         if (key.startsWith("xmtp.")) {
           localStorage.removeItem(key);
         }
       });
-      
+
       // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
@@ -46,25 +50,21 @@ export default function LogoutButton() {
       // Disconnect services
       disconnectXmtp();
       disconnect();
-      
+
       // Explicitly navigate to home page
       router.push("/");
-
     } catch (error) {
       console.error("Logout error:", error);
-      
     }
   };
 
   return (
-    <Button 
-      className="w-full text-sm text-red-400 " 
-      
-      size="default" 
+    <Button
+      className="w-full text-sm "
+      size="default"
       variant="destructive"
       disabled={isLoggingOut}
-      onClick={handleLogout}
-    >
+      onClick={handleLogout}>
       {isLoggingOut ? "Logging out..." : "Logout"}
     </Button>
   );

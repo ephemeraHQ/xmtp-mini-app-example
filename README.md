@@ -24,7 +24,9 @@ The debugger is structured as follows:
 - Docker (optional, for local network debugging)
 - A Farcaster account (for Frames integration testing)
 
-### Installation
+### Backend Installation
+
+Clone the repository and setup the backend:
 
 ```bash
 # Clone repository
@@ -35,22 +37,25 @@ cd xmtp-mini-app-examples/backend
 yarn install
 # Create .env file
 cp .env.example .env
+# Generate xmtp env vars: WALLET_KEY and ENCRYPTION_KEY
+yarn run gen:keys
 # Run in development mode
 yarn run dev
 ```
 
-### Running the debugger
+### Frontend Installation
 
-Create a `.env` file in the `frontend` directory with the following variables:
+Setup the frontend env vars:
 
 ```bash
-NEXT_PUBLIC_URL= # Your local/production URL
-NEXT_PUBLIC_APP_ENV=development # Enable Eruda for debugging
-NEXT_PUBLIC_NEYNAR_API_KEY= # Neynar API key from https://neynar.com
-JWT_SECRET= # Generate with openssl rand -base64 32
-XMTP_PRIVATE_KEY= # Private key of your XMTP account
-XMTP_ENV=dev # XMTP environment (dev/production)
-NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
+# Navigate to backend directory
+cd xmtp-mini-app-examples/frontend
+# Install dependencies
+yarn install
+# Create .env file
+cp .env.example .env
+# Run in development mode
+yarn run dev
 ```
 
 ## Debugging Examples
@@ -65,9 +70,28 @@ NEXT_PUBLIC_ENCRYPTION_KEY= # XMTP encryption key for the browser
 Once your mini-app is debugged, you can deploy it to any hosting provider:
 
 1. Update production environment variables
-2. For Farcaster Frame integration, update the `farcaster.json` manifest file with:
+2. For Farcaster Frame integration, update the `farcaster.json` `getFarcasterManifest` [Wallet Connection](./frontend/src/lib/frame.ts) file with:
    - Generated `accountAssociation` from Warpcast Mobile
    - Set proper URLs in the manifest
+
+### Generate farcaster.json manifest for your domain
+
+1. Go to Developer Manifest settings:
+   1. On your browser go to [Farcaster Developers > Manifest](https://warpcast.com/~/developers/mini-apps/manifest) 
+   2. On your mobile app go to "Settings > Developers (activate developer mode in advanced) > Domains"
+2. Insert your domain and generate the manifest for it.
+
+Copy the account association object and paste it in the respective variables in the `.env` file.
+
+You now should have updated the following variables:
+```bash
+# ...
+NEXT_PUBLIC_URL="https://your-domain.com"
+NEXT_PUBLIC_FARCASTER_HEADER="..." # copy accountAssociation.header string here
+NEXT_PUBLIC_FARCASTER_PAYLOAD="..." # copy accountAssociation.payload string here
+NEXT_PUBLIC_FARCASTER_SIGNATURE="..." # copy accountAssociation.signature string here
+```
+
 
 ## Debugging Farcaster Frames Integration
 
@@ -98,8 +122,17 @@ For isolated debugging, use a local XMTP network:
 XMTP_ENV=local
 ```
 
+## Common Errors
+
+### Error: `Frontend not displaying something even when forced`
+
+This is a common issue when the frontend and the backend operates on different XMTP_ENVs.
+Check the `.env` files to ensure that the frontend and backend are using the same XMTP_ENV network.
+
+
 ## Additional resources
 
 - [xmtp.chat](https://xmtp.chat) - Web best practices with XMTP `browser-sdk`
+- [Farcaster MiniApps Documentation](https://miniapps.farcaster.xyz/docs/getting-started)
 - [Farcaster Frames Documentation](https://docs.farcaster.xyz/reference/frames/spec)
 - [Builders Garden miniapp template](https://github.com/builders-garden/miniapp-next-template)

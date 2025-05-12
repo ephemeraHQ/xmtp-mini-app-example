@@ -9,4 +9,4 @@ export function FullPageLoader() {
       <p className="text-white mt-4 font-medium">Loading...</p>
     </div>
   );
-} 
+}

@@ -1,6 +1,7 @@
 import ky from "ky";
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
+import { GroupData } from "@/types/xmtp";
 
 export const dynamic = "force-dynamic";
 
@@ -21,30 +22,20 @@ export async function GET(request: Request) {
     console.log(`Requesting group data from backend: ${requestUrl}`);
 
     try {
-      const response = await ky.get(requestUrl, {
-        headers: {
-          "x-api-secret": env.API_SECRET_KEY,
-        },
-        timeout: 10000, // 10s timeout
-        cache: "no-store", // Disable caching
-        retry: 0, // Disable retries to prevent spamming the backend
-      });
+      const data = await ky
+        .get(requestUrl, {
+          headers: {
+            "x-api-secret": env.API_SECRET_KEY,
+          },
+          timeout: 10000, // 10s timeout
+          cache: "no-store", // Disable caching
+          retry: 0, // Disable retries to prevent spamming the backend
+        })
+        .json<GroupData>();
 
       // Log the raw response for debugging
-      const rawResponseText = await response.clone().text();
-      console.log(`Backend response received, status: ${response.status}`);
-      
-      try {
-        const data = await response.json();
-        return NextResponse.json(data);
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
-        console.error("Raw response text:", rawResponseText);
-        return NextResponse.json(
-          { error: "Invalid response from backend" },
-          { status: 502 },
-        );
-      }
+      console.log(`Backend response received`, data.groupId);
+      return NextResponse.json(data);
     } catch (fetchError) {
       console.error("Error communicating with backend");
       return NextResponse.json(

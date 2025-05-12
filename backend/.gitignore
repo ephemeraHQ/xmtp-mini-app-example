@@ -38,7 +38,9 @@ logs
 *.sw?
 
 # build artifacts
-dist
+dist/
+build/
+*.tsbuildinfo
 
 # yarn
 .pnp.*

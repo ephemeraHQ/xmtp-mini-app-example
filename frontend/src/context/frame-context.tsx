@@ -1,7 +1,7 @@
 "use client";
 
 import { FrameContext } from "@farcaster/frame-core/dist/context";
-import { sdk } from "@/lib/frame";
+import sdk from "@farcaster/frame-sdk";
 import {
   createContext,
   ReactNode,
@@ -12,6 +12,7 @@ import {
 
 interface FrameContextValue {
   context: FrameContext | null;
+  isInMiniApp: boolean;
   isSDKLoaded: boolean;
   error: string | null;
   actions: typeof sdk.actions | null;
@@ -21,14 +22,6 @@ const FrameProviderContext = createContext<FrameContextValue | undefined>(
   undefined,
 );
 
-export function useFrame() {
-  const context = useContext(FrameProviderContext);
-  if (context === undefined) {
-    throw new Error("useFrame must be used within a FrameProvider");
-  }
-  return context;
-}
-
 interface FrameProviderProps {
   children: ReactNode;
 }
@@ -37,6 +30,7 @@ export function FrameProvider({ children }: FrameProviderProps) {
   const [context, setContext] = useState<FrameContext | null>(null);
   const [actions, setActions] = useState<typeof sdk.actions | null>(null);
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+  const [isInMiniApp, setIsInMiniApp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,6 +40,7 @@ export function FrameProvider({ children }: FrameProviderProps) {
         if (context) {
           setContext(context as FrameContext);
           setActions(sdk.actions);
+          setIsInMiniApp(await sdk.isInMiniApp());
         } else {
           setError("Failed to load Farcaster context");
         }
@@ -74,6 +69,7 @@ export function FrameProvider({ children }: FrameProviderProps) {
     context,
     actions,
     isSDKLoaded,
+    isInMiniApp,
     error,
   };
 
@@ -82,4 +78,12 @@ export function FrameProvider({ children }: FrameProviderProps) {
       {children}
     </FrameProviderContext.Provider>
   );
+}
+
+export function useFrame() {
+  const context = useContext(FrameProviderContext);
+  if (context === undefined) {
+    throw new Error("useFrame must be used within a FrameProvider");
+  }
+  return context;
 }

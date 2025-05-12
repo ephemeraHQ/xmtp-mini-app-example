@@ -2,17 +2,16 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import { headers } from "next/headers";
+import { env } from "@/lib/env";
 import { Providers } from "@/providers";
-import "./config"; 
-import { getPublicUrl } from "@/lib/env";
+import "./config";
+
 const montserrat = Montserrat({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "XMTP MiniApp",
   description: "XMTP MiniApp",
-    metadataBase: new URL(
-      getPublicUrl(),
-  ),
+  metadataBase: new URL(env.NEXT_PUBLIC_URL),
 };
 
 export const revalidate = 0;

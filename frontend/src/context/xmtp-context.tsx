@@ -1,9 +1,9 @@
 import {
   Client,
   Conversation,
+  Group,
   type ClientOptions,
   type Signer,
-  Group,
 } from "@xmtp/browser-sdk";
 import {
   createContext,
@@ -94,7 +94,7 @@ const storage = {
   clearXMTPItems: () => {
     try {
       storage.remove(STORAGE_KEYS.HAS_CONNECTED);
-      
+
       let removedCount = 0;
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -103,7 +103,7 @@ const storage = {
           removedCount++;
         }
       }
-      
+
       return removedCount;
     } catch (e) {
       logger.error("Failed to clear XMTP items", e);
@@ -119,7 +119,9 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
   // State
   const [client, setClient] = useState<Client | undefined>(initialClient);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [groupConversation, setGroupConversation] = useState<Group | null>(null);
+  const [groupConversation, setGroupConversation] = useState<Group | null>(
+    null,
+  );
   const [initializing, setInitializing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [signatureAttempts, setSignatureAttempts] = useState(0);
@@ -150,13 +152,13 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       loggingLevel,
       signer,
     }: InitializeClientOptions) => {
-      logger.log("Initialize called with options", { 
-        hasDBEncryptionKey: !!dbEncryptionKey, 
+      logger.log("Initialize called with options", {
+        hasDBEncryptionKey: !!dbEncryptionKey,
         env,
         loggingLevel,
-        hasSigner: !!signer
+        hasSigner: !!signer,
       });
-      
+
       // Don't initialize if client exists
       if (client) {
         logger.log("Client already exists, returning existing client");
@@ -165,10 +167,12 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 
       // Don't proceed if already initializing (prevents double sign requests)
       if (initializing) {
-        logger.log("XMTP client initialization already in progress, returning undefined");
+        logger.log(
+          "XMTP client initialization already in progress, returning undefined",
+        );
         return undefined;
       }
-      
+
       // Check signature attempt threshold
       if (signatureAttempts >= 3) {
         logger.error("Too many signature attempts, not trying again");
@@ -180,14 +184,14 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
       logger.log("Setting initializing state");
       setError(null);
       setInitializing(true);
-      setSignatureAttempts(prev => prev + 1);
+      setSignatureAttempts((prev) => prev + 1);
 
       try {
         // Mark as connected in localStorage
         storage.set(STORAGE_KEYS.HAS_CONNECTED, "true");
 
         logger.log("Creating XMTP client...");
-        
+
         // Create client options
         const clientOptions = {
           env,
@@ -197,7 +201,7 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
 
         // Create the client with a timeout to prevent hanging
         logger.log("Calling Client.create - this will prompt for signature");
-        
+
         // Create a promise with timeout
         const clientPromise = Promise.race([
           Client.create(signer, clientOptions),
@@ -207,36 +211,36 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
             }, 60000); // 60 second timeout
           }),
         ]);
-        
-        const xmtpClient = await clientPromise as Client;
+
+        const xmtpClient = (await clientPromise) as Client;
         logger.log("XMTP client created successfully");
-        
+
         // Reset signature attempts counter on success
         setSignatureAttempts(0);
-        
+
         // Perform initial sync
         logger.log("Syncing conversations...");
         await xmtpClient.conversations.sync();
         logger.log("Initial conversations sync complete");
-        
+
         // Set the client
         logger.log("Setting client in state");
         setClient(xmtpClient);
-        
+
         return xmtpClient;
       } catch (e) {
         logger.error("Error creating XMTP client", e);
         setClient(undefined);
-        
+
         // Format and set the error
         const errorMessage = e instanceof Error ? e.message : "Unknown error";
         setError(new Error(errorMessage));
-        
+
         // If it's a signature error, we'll need to handle it specially
         if (errorMessage.includes("Signature")) {
           logger.error("Signature error", errorMessage);
         }
-        
+
         throw e;
       } finally {
         logger.log("Setting initializing to false");
@@ -251,17 +255,17 @@ export const XMTPProvider: React.FC<XMTPProviderProps> = ({
    */
   const disconnect = useCallback(() => {
     logger.log("Disconnect called");
-    
+
     if (client) {
       logger.log("Closing client");
       client.close();
-      
+
       logger.log("Setting client to undefined");
       setClient(undefined);
       setConversations([]);
       setError(null);
       setSignatureAttempts(0);
-      
+
       // Clear XMTP storage
       const removedCount = storage.clearXMTPItems();
       logger.log(`Removed ${removedCount} XMTP-specific localStorage items`);

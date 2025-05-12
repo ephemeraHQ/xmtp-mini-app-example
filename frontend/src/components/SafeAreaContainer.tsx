@@ -12,10 +12,10 @@ interface SafeAreaContainerProps {
   className?: string;
 }
 
-export function SafeAreaContainer({ 
-  children, 
+export function SafeAreaContainer({
+  children,
   insets,
-  className 
+  className,
 }: SafeAreaContainerProps) {
   return (
     <div
@@ -25,9 +25,8 @@ export function SafeAreaContainer({
         paddingRight: insets?.right ? `${insets.right}px` : 0,
         paddingBottom: insets?.bottom ? `${insets.bottom}px` : 0,
         paddingLeft: insets?.left ? `${insets.left}px` : 0,
-      }}
-    >
+      }}>
       {children}
     </div>
   );
-} 
+}

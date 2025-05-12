@@ -11,33 +11,33 @@ const createCacheKey = (address: string, message: string): string => {
 };
 
 export const createEphemeralSigner = (privateKey: Hex): Signer => {
-    const account = privateKeyToAccount(privateKey);
-    
-    return {
-      type: "EOA",
-      getIdentifier: () => ({
-        identifier: account.address.toLowerCase(),
-        identifierKind: "Ethereum",
-      }),
-      signMessage: async (message: string) => {
-        const cacheKey = createCacheKey(account.address, message);
-        
-        // Check if we have a cached signature
-        if (signatureCache[cacheKey]) {
-          console.log("Using cached signature for ephemeral key");
-          return signatureCache[cacheKey];
-        }
-        
-        // Sign the message
-        const signature = await account.signMessage({ message });
-        const signatureBytes = toBytes(signature);
-        
-        // Cache the signature
-        signatureCache[cacheKey] = signatureBytes;
-        
-        return signatureBytes;
-      },
-    };
+  const account = privateKeyToAccount(privateKey);
+
+  return {
+    type: "EOA",
+    getIdentifier: () => ({
+      identifier: account.address.toLowerCase(),
+      identifierKind: "Ethereum",
+    }),
+    signMessage: async (message: string) => {
+      const cacheKey = createCacheKey(account.address, message);
+
+      // Check if we have a cached signature
+      if (signatureCache[cacheKey]) {
+        console.log("Using cached signature for ephemeral key");
+        return signatureCache[cacheKey];
+      }
+
+      // Sign the message
+      const signature = await account.signMessage({ message });
+      const signatureBytes = toBytes(signature);
+
+      // Cache the signature
+      signatureCache[cacheKey] = signatureBytes;
+
+      return signatureBytes;
+    },
+  };
 };
 
 export const createEOASigner = (
@@ -45,7 +45,7 @@ export const createEOASigner = (
   walletClient: WalletClient,
 ): Signer => {
   console.log("Creating EOA signer for address:", address);
-  
+
   return {
     type: "EOA",
     getIdentifier: () => ({
@@ -54,40 +54,37 @@ export const createEOASigner = (
     }),
     signMessage: async (message: string) => {
       const cacheKey = createCacheKey(address, message);
-      
+
       // Check if we have a cached signature
       if (signatureCache[cacheKey]) {
         console.log("Using cached EOA signature");
         return signatureCache[cacheKey];
       }
-      
+
       // Sign the message
       console.log("EOA signer signing message");
       const signature = await walletClient.signMessage({
         account: address,
         message,
       });
-      
+
       const signatureBytes = toBytes(signature);
-      
+
       // Cache the signature
       signatureCache[cacheKey] = signatureBytes;
-      
+
       return signatureBytes;
     },
-   
   };
 };
 
-
-
-export const createSCWSigner = (   
+export const createSCWSigner = (
   address: `0x${string}`,
   signMessageAsync: (args: { message: string }) => Promise<`0x${string}`>,
   chainId: bigint | number = 1,
 ): Signer => {
   console.log("Creating Smart Contract Wallet signer for address:", address);
-  
+
   return {
     // Mark this as a Smart Contract Wallet signer
     type: "SCW",
@@ -97,25 +94,25 @@ export const createSCWSigner = (
     }),
     signMessage: async (message: string) => {
       const cacheKey = createCacheKey(address, message);
-      
+
       // Check if we have a cached signature
       if (signatureCache[cacheKey]) {
         console.log("Using cached Smart Contract Wallet signature");
         return signatureCache[cacheKey];
       }
-      
+
       // Sign the message using the smart contract wallet
       console.log("Smart Contract Wallet signing message");
       try {
         const signature = await signMessageAsync({ message });
         console.log("Smart Contract Wallet signature received:", signature);
-        
+
         const signatureBytes = toBytes(signature);
         console.log("Signature bytes length:", signatureBytes.length);
-        
+
         // Cache the signature
         signatureCache[cacheKey] = signatureBytes;
-        
+
         return signatureBytes;
       } catch (error) {
         console.error("Error in Smart Contract Wallet signMessage:", error);
@@ -125,7 +122,9 @@ export const createSCWSigner = (
     // Include getChainId for SCW compatibility
     getChainId: () => {
       console.log("SCW getChainId called, value:", chainId);
-      return typeof chainId === 'undefined' ? BigInt(1) : BigInt(chainId.toString());
+      return typeof chainId === "undefined"
+        ? BigInt(1)
+        : BigInt(chainId.toString());
     },
   };
 };

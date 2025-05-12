@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import {
   Client,
   type Conversation,
@@ -176,129 +177,127 @@ app.get("/health", (req, res) => {
 app.post(
   "/api/xmtp/add-inbox",
   validateApiSecret,
-  (req: Request, res: Response) => {
-    void (async () => {
-      try {
-        const { inboxId } = req.body as { inboxId: string };
-        console.log(
-          "Adding user to default group chat with id:",
-          GROUP_ID,
-          "and inboxId:",
-          inboxId,
-        );
-        const result = await addUserToDefaultGroupChat(inboxId);
-        res.status(200).json({
-          success: result,
-          message: result
-            ? "Successfully added user to default group chat"
-            : "You are already in the group",
-        });
-      } catch (error) {
-        console.error("Error adding user to default group chat:", error);
-        res.status(500).json({
-          message: "You are not in the group",
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    })();
+  async (req: Request, res: Response) => {
+    try {
+      const { inboxId } = req.body as { inboxId: string };
+      console.log(
+        "Adding user to default group chat with id:",
+        GROUP_ID,
+        "and inboxId:",
+        inboxId,
+      );
+      const result = await addUserToDefaultGroupChat(inboxId);
+      res.status(200).json({
+        success: result,
+        message: result
+          ? "Successfully added user to default group chat"
+          : "You are already in the group",
+      });
+      console.log("⚪ Response sent for add-inbox");
+    } catch (error) {
+      console.error("Error adding user to default group chat:", error);
+      res.status(500).json({
+        message: "You are not in the group",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   },
 );
 
 app.post(
   "/api/xmtp/remove-inbox",
   validateApiSecret,
-  (req: Request, res: Response) => {
-    void (async () => {
-      try {
-        const { inboxId } = req.body as { inboxId: string };
-        const result = await removeUserFromDefaultGroupChat(inboxId);
-        res.status(200).json({
-          success: result,
-          message: result
-            ? "Successfully removed user from default group chat"
-            : "Failed to remove user from default group chat",
-        });
-      } catch (error) {
-        console.error("Error removing user from default group chat:", error);
-        res.status(500).json({
-          message: "Failed to remove user from default group chat",
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    })();
+  async (req: Request, res: Response) => {
+    try {
+      const { inboxId } = req.body as { inboxId: string };
+      console.log("Removing user from group with inboxId:", inboxId);
+      const result = await removeUserFromDefaultGroupChat(inboxId);
+      res.status(200).json({
+        success: result,
+        message: result
+          ? "Successfully removed user from default group chat"
+          : "Failed to remove user from default group chat",
+      });
+      console.log("⚪ Response sent for remove-inbox");
+    } catch (error) {
+      console.error("Error removing user from default group chat:", error);
+      res.status(500).json({
+        message: "Failed to remove user from default group chat",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   },
 );
 app.get(
   "/api/xmtp/get-group-id",
   validateApiSecret,
-  (req: Request, res: Response) => {
-    void (async () => {
-      try {
-        console.log("🔵 Inside get-group-id async block");
-        console.log("Current client inbox ID:", req.query.inboxId);
-        console.log("Looking for group with ID:", GROUP_ID);
-        const conversation = await xmtpClient.conversations.getConversationById(
-          GROUP_ID ?? "",
-        );
-        console.log("🟢 Conversation fetched:", conversation?.id);
-        if (!conversation) {
-          console.log("⚠️ No conversation found");
-          return res.status(404).json({ error: "Group not found" });
-        }
-        await conversation.sync();
-        console.log("🟡 Conversation synced");
-
-        const groupMembers = await (conversation as Group).members();
-        const messages = await (conversation as Group).messages();
-        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-
-        const isMember = groupMembers.some(
-          (member) => member.inboxId === req.query.inboxId,
-        );
-
-        console.log("🟣 isMember check complete:", isMember);
-        console.log("🟣 Client inbox ID:", req.query.inboxId);
-
-        // Format member information for the response
-        const formattedMembers = groupMembers.map((member) => ({
-          inboxId: member.inboxId,
-          // Only include the first and last characters of the wallet address for privacy
-          displayInboxId: `${member.inboxId.slice(0, 6)}...${member.inboxId.slice(-6)}`,
-          isAdmin: (conversation as Group).isAdmin(member.inboxId),
-          isSuperAdmin: (conversation as Group).isSuperAdmin(member.inboxId),
-        }));
-
-        // Format last message for the response
-        const formattedLastMessage = lastMessage
-          ? {
-              id: lastMessage.id,
-              content: lastMessage.content,
-              sentAt: lastMessage.sentAt,
-              // Use sender or inboxId depending on what's available
-              senderInboxId: lastMessage.senderInboxId || "unknown",
-              displaySenderId: lastMessage.senderInboxId
-                ? `${lastMessage.senderInboxId.slice(0, 6)}...${lastMessage.senderInboxId.slice(-6)}`
-                : "unknown",
-            }
-          : null;
-
-        const responseObject = {
-          groupId: process.env.GROUP_ID,
-          groupName: (conversation as Group).name,
-          isMember,
-          memberCount: groupMembers.length,
-          members: formattedMembers,
-          lastMessage: formattedLastMessage,
-          messageCount: messages.length,
-        };
-
-        res.json(responseObject);
-        console.log("⚪ Response sent for get-group-id");
-      } catch (error) {
-        console.error("❌ Error in get-group-id:", error);
-        res.status(500).json({ error: "Failed to fetch group info" });
+  async (req: Request, res: Response) => {
+    try {
+      console.log("🔵 Inside get-group-id async block");
+      console.log("Current client inbox ID:", req.query.inboxId);
+      console.log("Looking for group with ID:", GROUP_ID);
+      const conversation = await xmtpClient.conversations.getConversationById(
+        GROUP_ID ?? "",
+      );
+      console.log("🟢 Conversation fetched:", conversation?.id);
+      if (!conversation) {
+        console.log("⚠️ No conversation found");
+        return res.status(404).json({ error: "Group not found" });
       }
-    })();
+      await conversation.sync();
+      console.log("🟡 Conversation synced");
+
+      const groupMembers = await (conversation as Group).members();
+      const messages = await (conversation as Group).messages();
+      const lastMessage =
+        messages.length > 0 ? messages[messages.length - 1] : null;
+
+      const isMember = groupMembers.some(
+        (member) => member.inboxId === req.query.inboxId,
+      );
+
+      console.log("🟣 isMember check complete:", isMember);
+      console.log("🟣 Client inbox ID:", req.query.inboxId);
+
+      // Format member information for the response
+      const formattedMembers = groupMembers.map((member) => ({
+        inboxId: member.inboxId,
+        // Only include the first and last characters of the wallet address for privacy
+        displayInboxId: `${member.inboxId.slice(0, 6)}...${member.inboxId.slice(-6)}`,
+        isAdmin: (conversation as Group).isAdmin(member.inboxId),
+        isSuperAdmin: (conversation as Group).isSuperAdmin(member.inboxId),
+      }));
+
+      // Format last message for the response
+      const formattedLastMessage = lastMessage
+        ? {
+            id: lastMessage.id,
+            content: lastMessage.content,
+            sentAt: lastMessage.sentAt,
+            // Use sender or inboxId depending on what's available
+            senderInboxId: lastMessage.senderInboxId || "unknown",
+            displaySenderId: lastMessage.senderInboxId
+              ? `${lastMessage.senderInboxId.slice(0, 6)}...${lastMessage.senderInboxId.slice(-6)}`
+              : "unknown",
+          }
+        : null;
+
+      const responseObject = {
+        groupId: process.env.GROUP_ID,
+        groupName: (conversation as Group).name,
+        isMember,
+        memberCount: groupMembers.length,
+        members: formattedMembers,
+        lastMessage: formattedLastMessage,
+        messageCount: messages.length,
+      };
+
+      res.json(responseObject);
+      console.log("⚪ Response sent for get-group-id");
+    } catch (error) {
+      console.error("❌ Error in get-group-id:", error);
+      res.status(500).json({ error: "Failed to fetch group info" });
+    }
   },
 );
 
