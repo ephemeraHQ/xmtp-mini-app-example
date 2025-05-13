@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useDisconnect } from "wagmi";
 import { Button } from "@/components/Button";
 import { useXMTP } from "@/context/xmtp-context";
-import { clearWagmiCookies } from "@/providers/wagmi";
+import { clearWagmiCookies } from "@/providers/miniapp-wallet-provider";
 
 // Key XMTP storage keys
 const XMTP_KEYS = [

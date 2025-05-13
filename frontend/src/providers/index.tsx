@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { FrameProvider } from "@/context/frame-context";
 import { XMTPProvider } from "@/context/xmtp-context";
-import { CustomWagmiProvider } from "@/providers/wagmi";
+import MiniAppWalletProvider from "@/providers/miniapp-wallet-provider";
 
 const ErudaProvider = dynamic(
   () => import("@/providers/eruda").then((c) => c.ErudaProvider),
@@ -22,9 +22,9 @@ export const Providers = ({
   return (
     <ErudaProvider>
       <FrameProvider>
-        <CustomWagmiProvider cookies={cookies}>
-            <XMTPProvider>{children}</XMTPProvider>
-        </CustomWagmiProvider>
+        <MiniAppWalletProvider cookies={cookies}>
+          <XMTPProvider>{children}</XMTPProvider>
+        </MiniAppWalletProvider>
       </FrameProvider>
     </ErudaProvider>
   );
