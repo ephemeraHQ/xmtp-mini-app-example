@@ -15,7 +15,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['@farcaster/frame-wagmi-connector'],
+  transpilePackages: ['@farcaster/frame-wagmi-connector', '@farcaster/frame-sdk'],
   webpack: (config, { isServer }) => {
     // Add extensionAlias for .js
     config.resolve = config.resolve || {};
