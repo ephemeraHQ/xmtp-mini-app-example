@@ -15,6 +15,9 @@ jobs:
       BACKEND_URL: "https://example.com/api"
       API_SECRET_KEY: "dummy-api-key-for-ci"
       NEXT_PUBLIC_URL: "https://example.com"
+      NEXT_PUBLIC_FARCASTER_HEADER: "dummy-header-for-ci"
+      NEXT_PUBLIC_FARCASTER_PAYLOAD: "dummy-payload-for-ci"
+      NEXT_PUBLIC_FARCASTER_SIGNATURE: "dummy-signature-for-ci"
       NEXT_PUBLIC_XMTP_ENV: "dev"
       NEXT_PUBLIC_ENCRYPTION_KEY: "dummy-encryption-key-for-ci"
     steps:
