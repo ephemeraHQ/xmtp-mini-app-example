@@ -22,7 +22,7 @@ export function Header({ onLogout, isConnected }: HeaderProps) {
         {env.NEXT_PUBLIC_APP_ENV !== "production" && (
           <button
             onClick={toggleEruda}
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors px-2 py-0.5 rounded-md bg-gray-900">
+            className=" text-blue-400 hover:text-blue-300 transition-colors px-2 py-1.5 rounded-md border border-gray-200 bg-gray-900">
             Console
           </button>
         )}

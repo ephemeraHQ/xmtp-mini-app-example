@@ -60,9 +60,7 @@ export default function LogoutButton() {
 
   return (
     <Button
-      className="w-full text-sm "
-      size="default"
-      variant="destructive"
+      className="text-sm text-red-400 hover:text-red-300 transition-colors px-2 py-0 rounded-md bg-gray-900"
       disabled={isLoggingOut}
       onClick={handleLogout}>
       {isLoggingOut ? "Logging out..." : "Logout"}

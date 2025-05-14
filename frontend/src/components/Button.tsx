@@ -21,7 +21,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
           // Variants
           variant === "default" &&
-            "bg-primary text-primary-foreground hover:bg-primary/90 border border-white",
+            "bg-white text-gray-800 hover:bg-gray-100 border border-gray-200",
           variant === "destructive" &&
             "bg-destructive text-destructive-foreground hover:bg-destructive/90",
           variant === "outline" &&

@@ -294,7 +294,7 @@ export default function WalletConnection() {
     <div className="w-full flex flex-col gap-4">
       <div className="w-full flex flex-col gap-3 mt-2">
         <Button
-          className="w-full"
+          className="w-full bg-transparent text-white hover:bg-gray-100 hover:text-black "
           size="lg"
           onClick={connectWithEOA}
           disabled={initializing || localInitializing}>
@@ -305,7 +305,7 @@ export default function WalletConnection() {
         </Button>
 
         <Button
-          className="w-full"
+          className="w-full bg-transparent text-white hover:bg-gray-100 hover:text-black "
           size="lg"
           onClick={connectWithEphemeral}
           disabled={initializing || localInitializing}>
@@ -316,7 +316,7 @@ export default function WalletConnection() {
         </Button>
 
         <Button
-          className="w-full"
+          className="w-full bg-transparent text-white hover:bg-gray-100 hover:text-black "
           size="lg"
           onClick={connectWithCoinbaseSmartWallet}
           disabled={initializing || localInitializing}>
