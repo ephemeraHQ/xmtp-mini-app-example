@@ -5,6 +5,62 @@ import { spawn, type ChildProcess } from 'child_process';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
+interface EnvIssue {
+  line: number;
+  key: string;
+  originalValue: string;
+  issue: string;
+}
+
+// Check for problematic env file formatting
+const checkEnvFile = (filename: string): EnvIssue[] => {
+  const issues: EnvIssue[] = [];
+  try {
+    const envPath = resolve(process.cwd(), filename);
+    const envContent = readFileSync(envPath, 'utf-8');
+    
+    envContent.split('\n').forEach((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        return;
+      }
+      
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex === -1) {
+        return;
+      }
+      
+      const key = trimmedLine.substring(0, equalIndex).trim();
+      const value = trimmedLine.substring(equalIndex + 1).trim();
+      
+      // Check for inline comments with quoted values
+      if (value.startsWith('"') && value.includes('#') && !value.endsWith('"')) {
+        issues.push({
+          line: index + 1,
+          key,
+          originalValue: value,
+          issue: 'Quoted value with inline comment - the comment will be included in the value'
+        });
+      }
+      
+      // Check for inline comments without proper handling
+      if (!value.startsWith('"') && !value.startsWith("'") && value.includes(' #')) {
+        issues.push({
+          line: index + 1,
+          key,
+          originalValue: value,
+          issue: 'Inline comment without quotes - may cause parsing issues'
+        });
+      }
+    });
+  } catch (error) {
+    // File doesn't exist, skip silently
+  }
+  return issues;
+};
+
 // Load environment variables from .env and .env.local
 const loadEnvFile = (filename: string): void => {
   try {
@@ -49,6 +105,32 @@ const loadEnvFile = (filename: string): void => {
   }
 };
 
+// Check for problematic .env formatting
+const envIssues = checkEnvFile('.env');
+const envLocalIssues = checkEnvFile('.env.local');
+
+if (envIssues.length > 0 || envLocalIssues.length > 0) {
+  console.log('\n❌ Found issues in your .env file that will cause Next.js to fail:\n');
+  
+  [...envIssues, ...envLocalIssues].forEach(issue => {
+    console.log(`   📄 Line ${issue.line}: ${issue.key}`);
+    console.log(`   ❌ ${issue.issue}`);
+    console.log(`   Current: ${issue.originalValue}`);
+    console.log('');
+  });
+  
+  console.log('💡 How to fix:');
+  console.log('   1. Open your .env file');
+  console.log('   2. Remove inline comments or move them to separate lines\n');
+  console.log('   ❌ Bad:  NEXT_PUBLIC_APP_ENV="development" # comment');
+  console.log('   ✅ Good: # comment');
+  console.log('           NEXT_PUBLIC_APP_ENV=development\n');
+  console.log('   or');
+  console.log('   ✅ Good: NEXT_PUBLIC_APP_ENV=development\n');
+  
+  console.log('⚠️  Continuing anyway, but Next.js will likely fail to start...\n');
+}
+
 // Load .env first, then .env.local (which can override)
 loadEnvFile('.env');
 loadEnvFile('.env.local');
@@ -59,12 +141,16 @@ const NGROK_DOMAIN = process.env.NGROK_DOMAIN;
 let detectedPort: number | null = null;
 let nextServer: ChildProcess;
 
+// Create a clean environment object for Next.js
+// This ensures our cleaned env vars are used instead of Next.js reading .env directly
+const cleanEnv = { ...process.env };
+
 // Start Next.js dev server
 console.log('🚀 Starting Next.js dev server...\n');
 nextServer = spawn('yarn', ['next', 'dev'], {
   stdio: 'pipe',
   shell: true,
-  env: process.env
+  env: cleanEnv
 });
 
 // Capture output to detect the actual port
@@ -104,7 +190,7 @@ const startNgrok = async (): Promise<void> => {
       process.exit(1);
     }
     
-    const ngrokConfig: ngrok.ConnectConfig = {
+    const ngrokConfig = {
       addr: detectedPort,
       authtoken: NGROK_AUTHTOKEN,
     };
