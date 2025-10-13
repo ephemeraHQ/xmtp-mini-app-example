@@ -426,6 +426,145 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ngrok/ngrok-android-arm64@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-android-arm64@npm:1.5.2"
+  conditions: os=android & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-darwin-arm64@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-darwin-arm64@npm:1.5.2"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-darwin-universal@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-darwin-universal@npm:1.5.2"
+  conditions: os=darwin
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-darwin-x64@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-darwin-x64@npm:1.5.2"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-freebsd-x64@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-freebsd-x64@npm:1.5.2"
+  conditions: os=freebsd & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-linux-arm-gnueabihf@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-linux-arm-gnueabihf@npm:1.5.2"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-linux-arm64-gnu@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-linux-arm64-gnu@npm:1.5.2"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-linux-arm64-musl@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-linux-arm64-musl@npm:1.5.2"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-linux-x64-gnu@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-linux-x64-gnu@npm:1.5.2"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-linux-x64-musl@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-linux-x64-musl@npm:1.5.2"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-win32-arm64-msvc@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-win32-arm64-msvc@npm:1.5.2"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-win32-ia32-msvc@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-win32-ia32-msvc@npm:1.5.2"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok-win32-x64-msvc@npm:1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok-win32-x64-msvc@npm:1.5.2"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@ngrok/ngrok@npm:^1.5.2":
+  version: 1.5.2
+  resolution: "@ngrok/ngrok@npm:1.5.2"
+  dependencies:
+    "@ngrok/ngrok-android-arm64": "npm:1.5.2"
+    "@ngrok/ngrok-darwin-arm64": "npm:1.5.2"
+    "@ngrok/ngrok-darwin-universal": "npm:1.5.2"
+    "@ngrok/ngrok-darwin-x64": "npm:1.5.2"
+    "@ngrok/ngrok-freebsd-x64": "npm:1.5.2"
+    "@ngrok/ngrok-linux-arm-gnueabihf": "npm:1.5.2"
+    "@ngrok/ngrok-linux-arm64-gnu": "npm:1.5.2"
+    "@ngrok/ngrok-linux-arm64-musl": "npm:1.5.2"
+    "@ngrok/ngrok-linux-x64-gnu": "npm:1.5.2"
+    "@ngrok/ngrok-linux-x64-musl": "npm:1.5.2"
+    "@ngrok/ngrok-win32-arm64-msvc": "npm:1.5.2"
+    "@ngrok/ngrok-win32-ia32-msvc": "npm:1.5.2"
+    "@ngrok/ngrok-win32-x64-msvc": "npm:1.5.2"
+  dependenciesMeta:
+    "@ngrok/ngrok-android-arm64":
+      optional: true
+    "@ngrok/ngrok-darwin-arm64":
+      optional: true
+    "@ngrok/ngrok-darwin-universal":
+      optional: true
+    "@ngrok/ngrok-darwin-x64":
+      optional: true
+    "@ngrok/ngrok-freebsd-x64":
+      optional: true
+    "@ngrok/ngrok-linux-arm-gnueabihf":
+      optional: true
+    "@ngrok/ngrok-linux-arm64-gnu":
+      optional: true
+    "@ngrok/ngrok-linux-arm64-musl":
+      optional: true
+    "@ngrok/ngrok-linux-x64-gnu":
+      optional: true
+    "@ngrok/ngrok-linux-x64-musl":
+      optional: true
+    "@ngrok/ngrok-win32-arm64-msvc":
+      optional: true
+    "@ngrok/ngrok-win32-ia32-msvc":
+      optional: true
+    "@ngrok/ngrok-win32-x64-msvc":
+      optional: true
+  checksum: 10/7c96ae5ceab362c4a400bc6a6b81f3a360afb7e33c5b6a87b15f1e97b53b0ff6cab0fb988fbe1095cb34d81dc2f09c83c0e883a665fbbbb0f26a9cc76a55c88c
+  languageName: node
+  linkType: hard
+
 "@noble/curves@npm:^1.4.2, @noble/curves@npm:^1.6.0, @noble/curves@npm:^1.7.0, @noble/curves@npm:~1.9.0":
   version: 1.9.0
   resolution: "@noble/curves@npm:1.9.0"
@@ -5722,6 +5861,7 @@ __metadata:
     "@farcaster/frame-node": "npm:^0.0.24"
     "@farcaster/frame-sdk": "npm:^0.0.41"
     "@ianvs/prettier-plugin-sort-imports": "npm:^4.4.1"
+    "@ngrok/ngrok": "npm:^1.5.2"
     "@t3-oss/env-nextjs": "npm:^0.12.0"
     "@types/node": "npm:^20"
     "@types/react": "npm:^18"

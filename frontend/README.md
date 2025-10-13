@@ -52,6 +52,38 @@ yarn dev
 
 Visit `http://localhost:3000?users=0x...` to see the app in action.
 
+### Run with Ngrok (for Farcaster Frame Testing)
+
+To test your app with Farcaster frames or external services, you can expose your local server using ngrok:
+
+```bash
+yarn dev:ngrok
+```
+
+This will:
+1. Start the Next.js dev server on port 3000
+2. Create an ngrok tunnel to expose it publicly
+3. Display both local and public URLs in the console
+
+#### Ngrok Configuration
+
+Add your ngrok authtoken to `.env.local`:
+
+```env
+# Required: Ngrok authentication token
+NGROK_AUTHTOKEN=your_ngrok_authtoken
+
+# Optional: Custom ngrok domain (requires paid plan)
+NGROK_DOMAIN=your-custom-domain.ngrok.app
+```
+
+**Getting your ngrok authtoken:**
+1. Sign up at: https://dashboard.ngrok.com/signup (free tier available)
+2. Get your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken
+3. Add it to your `.env.local` file
+
+**Note:** The authtoken is required for ngrok to work. With the free tier, you'll get a random public URL. Paid plans offer custom domains and additional features.
+
 ### Build for Production
 
 ```bash
@@ -122,6 +154,16 @@ Create a `.env.local` file with:
 ```env
 NEXT_PUBLIC_URL=http://localhost:3000
 NEXT_PUBLIC_APP_ENV=development
+
+# Farcaster Manifest (required for Farcaster mini apps)
+NEXT_PUBLIC_FARCASTER_HEADER=your_header
+NEXT_PUBLIC_FARCASTER_PAYLOAD=your_payload
+NEXT_PUBLIC_FARCASTER_SIGNATURE=your_signature
+
+# Ngrok configuration (required if using yarn dev:ngrok)
+NGROK_AUTHTOKEN=your_ngrok_authtoken
+# Optional: Custom domain (requires ngrok paid plan)
+NGROK_DOMAIN=your-custom-domain.ngrok.app
 ```
 
 ## Removed Features
