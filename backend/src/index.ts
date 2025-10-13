@@ -4,7 +4,7 @@ import {
   resolveMentionsInMessage,
   extractMentions,
   extractMemberAddresses,
-} from "./resolver";
+} from "./resolver.js";
 
 process.env
 

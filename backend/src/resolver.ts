@@ -1,7 +1,7 @@
 import { IdentifierKind } from "@xmtp/agent-sdk";
 import { createNameResolver } from "@xmtp/agent-sdk/user";
 import type { GroupMember } from "@xmtp/agent-sdk";
-import { loadEnvFile } from "./general";
+import { loadEnvFile } from "node:process";
 
 loadEnvFile();
 // Create resolver instance (uses web3.bio under the hood)
