@@ -20,7 +20,7 @@ yarn-error.log*
 
 # turbo
 .turbo
-
+.env
 # logs
 logs
 *.log
@@ -38,9 +38,7 @@ logs
 *.sw?
 
 # build artifacts
-dist/
-build/
-*.tsbuildinfo
+dist
 
 # yarn
 .pnp.*
