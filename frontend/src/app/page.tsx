@@ -22,11 +22,9 @@ export async function generateMetadata({
   const _searchParams = await searchParams;
   const { conversationId } = _searchParams; // access to 123 in url example.org/?conversationId=123
 
-  const ogTitle = "XMTP Group Chat";
-  const ogDescription = "Join the group chat on Farcaster with XMTP 💬";
-  const ogImageUrl = conversationId
-    ? `${env.NEXT_PUBLIC_URL}/api/og/image/${conversationId}`
-    : `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`;
+  const ogTitle = "Group Member Renderer";
+  const ogDescription = "View group member addresses via URL parameters";
+  const ogImageUrl = `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`;
 
   return {
     title: ogTitle,
@@ -46,9 +44,6 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: ogTitle,
       description: ogDescription,
-      creator: "@xmtp_",
-      siteId: "1382634722719858690",
-      creatorId: "1382634722719858690",
       images: [ogImageUrl],
     },
     other: {
