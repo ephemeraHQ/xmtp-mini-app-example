@@ -1,26 +1,47 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 import ngrok from '@ngrok/ngrok';
-import { spawn } from 'child_process';
+import { spawn, type ChildProcess } from 'child_process';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 // Load environment variables from .env and .env.local
-const loadEnvFile = (filename) => {
+const loadEnvFile = (filename: string): void => {
   try {
     const envPath = resolve(process.cwd(), filename);
     const envContent = readFileSync(envPath, 'utf-8');
+    
     envContent.split('\n').forEach(line => {
       const trimmedLine = line.trim();
-      if (trimmedLine && !trimmedLine.startsWith('#')) {
-        const [key, ...valueParts] = trimmedLine.split('=');
-        if (key && valueParts.length > 0) {
-          const value = valueParts.join('=').trim();
-          // Only set if not already in process.env
-          if (!process.env[key]) {
-            process.env[key] = value;
-          }
-        }
+      
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('#')) {
+        return;
+      }
+      
+      const equalIndex = trimmedLine.indexOf('=');
+      if (equalIndex === -1) {
+        return;
+      }
+      
+      const key = trimmedLine.substring(0, equalIndex).trim();
+      let value = trimmedLine.substring(equalIndex + 1).trim();
+      
+      // Remove inline comments (but preserve # inside quoted strings)
+      if (value.includes('#') && !value.startsWith('"') && !value.startsWith("'")) {
+        const commentIndex = value.indexOf('#');
+        value = value.substring(0, commentIndex).trim();
+      }
+      
+      // Remove quotes if present
+      if ((value.startsWith('"') && value.endsWith('"')) || 
+          (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      
+      // Only set if not already in process.env
+      if (key && !process.env[key]) {
+        process.env[key] = value;
       }
     });
   } catch (error) {
@@ -35,18 +56,19 @@ loadEnvFile('.env.local');
 const NGROK_AUTHTOKEN = process.env.NGROK_AUTHTOKEN;
 const NGROK_DOMAIN = process.env.NGROK_DOMAIN;
 
-let detectedPort = null;
+let detectedPort: number | null = null;
+let nextServer: ChildProcess;
 
 // Start Next.js dev server
 console.log('🚀 Starting Next.js dev server...\n');
-const nextServer = spawn('yarn', ['next', 'dev'], {
+nextServer = spawn('yarn', ['next', 'dev'], {
   stdio: 'pipe',
   shell: true,
   env: process.env
 });
 
 // Capture output to detect the actual port
-nextServer.stdout.on('data', (data) => {
+nextServer.stdout?.on('data', (data: Buffer) => {
   const output = data.toString();
   process.stdout.write(output);
   
@@ -55,16 +77,16 @@ nextServer.stdout.on('data', (data) => {
   if (portMatch && !detectedPort) {
     detectedPort = parseInt(portMatch[1], 10);
     console.log(`\n✅ Detected Next.js running on port ${detectedPort}`);
-    startNgrok();
+    void startNgrok();
   }
 });
 
-nextServer.stderr.on('data', (data) => {
+nextServer.stderr?.on('data', (data: Buffer) => {
   process.stderr.write(data);
 });
 
 // Start ngrok tunnel
-const startNgrok = async () => {
+const startNgrok = async (): Promise<void> => {
   if (!detectedPort) {
     console.error('❌ Could not detect Next.js port');
     return;
@@ -82,7 +104,7 @@ const startNgrok = async () => {
       process.exit(1);
     }
     
-    const ngrokConfig = {
+    const ngrokConfig: ngrok.ConnectConfig = {
       addr: detectedPort,
       authtoken: NGROK_AUTHTOKEN,
     };
@@ -104,8 +126,10 @@ const startNgrok = async () => {
     console.log('💡 Press Ctrl+C to stop\n');
 
   } catch (error) {
-    console.error('❌ Failed to start ngrok tunnel:', error.message);
-    if (error.message.includes('authentication') || error.message.includes('authtoken')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Failed to start ngrok tunnel:', errorMessage);
+    
+    if (errorMessage.includes('authentication') || errorMessage.includes('authtoken')) {
       console.log('\n💡 Steps to fix:');
       console.log('   1. Sign up at: https://dashboard.ngrok.com/signup');
       console.log('   2. Get your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken');
@@ -116,7 +140,7 @@ const startNgrok = async () => {
 };
 
 // Handle cleanup
-const cleanup = () => {
+const cleanup = (): void => {
   console.log('\n\n🛑 Shutting down...');
   nextServer.kill();
   process.exit(0);
@@ -124,10 +148,4 @@ const cleanup = () => {
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
-
-// Start ngrok
-startNgrok().catch((error) => {
-  console.error('Failed to start:', error);
-  cleanup();
-});
 
