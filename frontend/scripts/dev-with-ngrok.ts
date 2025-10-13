@@ -190,7 +190,7 @@ const startNgrok = async (): Promise<void> => {
       process.exit(1);
     }
     
-    const ngrokConfig = {
+    const ngrokConfig: Record<string, string | number> = {
       addr: detectedPort,
       authtoken: NGROK_AUTHTOKEN,
     };
