@@ -1,10 +1,10 @@
-# Group Member Renderer
+# Tagged Member Resolver
 
-A simple Next.js application that renders group member addresses passed via URL parameters.
+A Next.js application that resolves and displays member identities from tags (ENS names, Farcaster usernames, or Ethereum addresses).
 
 ## Overview
 
-This app has been simplified from the original XMTP Mini App to focus on displaying group member information. It no longer includes XMTP Browser SDK or wallet authentication - instead, it simply renders a list of Ethereum addresses passed through URL query parameters.
+This app resolves various identity formats (ENS domains, Farcaster usernames, Ethereum addresses) to display both the human-readable name and the corresponding Ethereum address. It uses the web3.bio API for name resolution and provides a clean, mobile-friendly interface.
 
 ## Usage
 
@@ -13,22 +13,29 @@ This app has been simplified from the original XMTP Mini App to focus on display
 Visit the app with the following URL format:
 
 ```
-https://your-domain.com?users=0x1234...,0x5678...,0xabcd...
+https://your-domain.com?tags=vitalik.eth,fabrizioeth,0x1234...
 ```
 
-### Example
+### Examples
 
 ```
-https://mini-app.vercel.com?users=0xfb55CB623f2aB58Da17D8696501054a2ACeD1944,0x1234567890123456789012345678901234567890
+https://mini-app.vercel.com?tags=vitalik.eth,fabrizioeth.farcaster.eth,0xfb55CB623f2aB58Da17D8696501054a2ACeD1944
+```
+
+```
+https://mini-app.vercel.com?tags=byteai.base.eth,0xabc5…f002
 ```
 
 ## Features
 
-- ✅ Parse multiple Ethereum addresses from URL parameters
-- ✅ Display addresses in a clean, mobile-friendly interface
+- ✅ Resolve ENS names (e.g., `vitalik.eth`, `byteai.base.eth`)
+- ✅ Resolve Farcaster usernames (automatically appends `.farcaster.eth`)
+- ✅ Handle full Ethereum addresses (pass-through)
+- ✅ Match shortened addresses (e.g., `0xabc5…f002`)
+- ✅ Display both name/identifier and resolved address
+- ✅ Real-time resolution with loading states
 - ✅ Copy addresses to clipboard with one click
-- ✅ Validate Ethereum address format (0x + 40 hex characters)
-- ✅ Show member count
+- ✅ Error handling for unresolved identities
 - ✅ Responsive design with dark theme
 
 ## Development
@@ -50,7 +57,7 @@ yarn install
 yarn dev
 ```
 
-Visit `http://localhost:3000?users=0x...` to see the app in action.
+Visit `http://localhost:3000?tags=vitalik.eth,fabrizioeth` to see the app in action.
 
 ### Run with Ngrok (for Farcaster Frame Testing)
 
@@ -118,6 +125,7 @@ frontend/
 │   ├── lib/                 # Utility functions
 │   │   ├── constants.ts     # App constants
 │   │   ├── env.ts          # Environment variables
+│   │   ├── resolver.ts     # Identity resolution logic
 │   │   ├── types.ts        # TypeScript types
 │   │   └── ...
 │   ├── pages/              # Page components
@@ -132,10 +140,11 @@ frontend/
 ### MemberRenderer
 
 The main component that:
-1. Reads the `users` query parameter from the URL
-2. Validates Ethereum addresses
-3. Displays them in a styled list
-4. Provides copy-to-clipboard functionality
+1. Reads the `tags` query parameter from the URL
+2. Resolves each tag to an Ethereum address using web3.bio API
+3. Displays both the identifier (name) and resolved address
+4. Shows loading states during resolution
+5. Provides copy-to-clipboard functionality for resolved addresses
 
 ### Header
 
@@ -146,6 +155,32 @@ Simple header with:
 ### SafeAreaContainer
 
 Handles safe area insets for mobile devices, especially important when running in Farcaster mini apps.
+
+## Identity Resolution
+
+The app uses the `lib/resolver.ts` module to resolve various identity formats:
+
+### Supported Formats
+
+1. **Full Ethereum addresses**: `0x1234...` (42 characters)
+   - Passed through as-is
+
+2. **ENS names**: `vitalik.eth`, `byteai.base.eth`
+   - Resolved via web3.bio API
+
+3. **Farcaster usernames**: `fabrizioeth`
+   - Automatically appends `.farcaster.eth` and resolves
+
+4. **Shortened addresses**: `0xabc5…f002`
+   - Matched against a list of known addresses (for group contexts)
+
+### Resolution Flow
+
+1. Tags are extracted from the URL query parameter
+2. Each tag is resolved asynchronously
+3. UI shows loading state during resolution
+4. Resolved addresses are displayed with the original identifier
+5. Failed resolutions show an error message
 
 ## Environment Variables
 

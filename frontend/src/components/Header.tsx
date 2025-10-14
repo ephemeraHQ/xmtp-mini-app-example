@@ -16,15 +16,6 @@ export function Header({ isConnected }: HeaderProps) {
         <span className="text-white font-medium">XMTP Mini App</span>
       </Link>
 
-      <div className="flex items-center space-x-2">
-        {env.NEXT_PUBLIC_APP_ENV !== "production" && (
-          <button
-            onClick={toggleEruda}
-            className="text-blue-400 hover:text-blue-300 transition-colors px-2 py-1.5 rounded-md border border-gray-200 bg-gray-900">
-            Console
-          </button>
-        )}
-      </div>
     </header>
   );
 }

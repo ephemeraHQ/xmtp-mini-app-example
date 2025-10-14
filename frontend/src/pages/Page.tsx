@@ -33,10 +33,10 @@ export default function Page() {
         <div className="flex flex-col gap-4 px-4 py-4 h-full overflow-auto">
           <div className="mb-4">
             <h1 className="text-2xl font-bold text-white mb-2">
-              Group Members
+              Tagged Members
             </h1>
             <p className="text-gray-400 text-sm">
-              View group member addresses passed via URL parameters
+              Resolving member identities from tags (ENS, Farcaster, addresses)
             </p>
           </div>
 
