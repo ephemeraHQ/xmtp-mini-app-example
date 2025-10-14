@@ -22,11 +22,8 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
     
     // Prevent duplicate resolution attempts
     if (isResolving && resolvingTags === tagsKey) {
-      console.log("Preventing duplicate resolution for:", tagsKey);
       return;
     }
-
-    console.log("Starting resolution for tags:", tags);
     setIsResolving(true);
     setResolvingTags(tagsKey);
     setError(null);
@@ -71,17 +68,14 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
       })
     );
 
-    console.log("Resolution completed for tags:", tags);
     setMembers(resolvedMembers);
     setIsResolving(false);
     setResolvingTags("");
   }, [isResolving, resolvingTags]);
 
   useEffect(() => {
-    console.log("MemberRenderer useEffect triggered");
     // Parse tags from URL query parameter
     const tagsParam = searchParams?.get("tags");
-    console.log("Tags param:", tagsParam);
     
     if (tagsParam) {
       try {
@@ -90,8 +84,6 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
           .split(",")
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0);
-
-        console.log("Parsed tags:", tags);
 
         if (tags.length === 0) {
           setError("No valid tags found in URL");
@@ -103,10 +95,8 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
         console.error(err);
       }
     } else if (defaultTags.length > 0) {
-      console.log("Using default tags:", defaultTags);
       resolveTags(defaultTags);
     } else {
-      console.log("No tags specified");
       setError("No tags specified. Add ?tags=username,... to the URL");
     }
   }, [searchParams, defaultTags, resolveTags]);
