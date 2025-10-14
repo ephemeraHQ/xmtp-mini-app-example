@@ -88,51 +88,6 @@ async function fetchFarcasterUserByFid(
 }
 
 /**
- * Search for a Farcaster user by Ethereum address
- */
-async function searchFarcasterUserByAddress(address: string): Promise<number | null> {
-  console.log(`[Neynar] searchFarcasterUserByAddress called with address: "${address}"`);
-  
-  if (!NEYNAR_API_KEY) {
-    console.warn("[Neynar] NEYNAR_API_KEY not configured");
-    return null;
-  }
-
-  try {
-    const url = `${NEYNAR_BASE_URL}/user/bulk-by-address`;
-    const params = { addresses: address };
-    console.log(`[Neynar] Making API request to: ${url}`);
-    console.log(`[Neynar] Request params:`, params);
-    
-    const response = await ky
-      .get(url, {
-        searchParams: params,
-        headers: {
-          "x-api-key": NEYNAR_API_KEY,
-        },
-        timeout: 5000,
-      })
-      .json<{ [key: string]: NeynarUser[] }>();
-
-    console.log(`[Neynar] Bulk by address response:`, response);
-
-    // The response is an object with addresses as keys
-    const users = response[address.toLowerCase()];
-    if (users && users.length > 0) {
-      const fid = users[0].fid;
-      console.log(`[Neynar] Found user with FID: ${fid} for address: ${address}`);
-      return fid;
-    }
-
-    console.log(`[Neynar] No Farcaster user found for address: ${address}`);
-    return null;
-  } catch (error) {
-    console.error(`[Neynar] Error searching for address ${address}:`, error);
-    return null;
-  }
-}
-
-/**
  * Resolve an Ethereum address and enrich with Farcaster profile data
  */
 export async function resolveIdentifier(
@@ -156,13 +111,43 @@ export async function resolveIdentifier(
     };
   }
 
-  console.log(`[Resolver] Valid Ethereum address, checking Farcaster for profile...`);
+  console.log(`[Resolver] Valid Ethereum address, checking Farcaster...`);
   
+  if (!NEYNAR_API_KEY) {
+    console.warn("[Resolver] NEYNAR_API_KEY not configured");
+    return {
+      identifier,
+      address: cleanIdentifier,
+      isResolving: false,
+    };
+  }
+
   try {
-    const fid = await searchFarcasterUserByAddress(cleanIdentifier);
+    // Search for Farcaster user by address
+    const url = `${NEYNAR_BASE_URL}/user/bulk-by-address`;
+    const params = { addresses: cleanIdentifier };
+    console.log(`[Resolver] Making API request to: ${url}`);
+    console.log(`[Resolver] Request params:`, params);
     
-    if (fid) {
-      console.log(`[Resolver] Found Farcaster profile, FID: ${fid}`);
+    const addressResponse = await ky
+      .get(url, {
+        searchParams: params,
+        headers: {
+          "x-api-key": NEYNAR_API_KEY,
+        },
+        timeout: 5000,
+      })
+      .json<{ [key: string]: NeynarUser[] }>();
+
+    console.log(`[Resolver] Address lookup response:`, addressResponse);
+
+    // The response is an object with addresses as keys
+    const users = addressResponse[cleanIdentifier.toLowerCase()];
+    if (users && users.length > 0) {
+      const fid = users[0].fid;
+      console.log(`[Resolver] Found Farcaster user with FID: ${fid}`);
+      
+      // Fetch full user profile
       const user = await fetchFarcasterUserByFid(fid);
       
       if (user) {
