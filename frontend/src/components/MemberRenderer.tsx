@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { resolveIdentifier, type ResolvedMember } from "@/lib/resolver";
 
 interface MemberRendererProps {
-  defaultTags?: string[];
+  defaultTags?: string[]; 
 }
 
 export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps) {
