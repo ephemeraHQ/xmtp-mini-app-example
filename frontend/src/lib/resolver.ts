@@ -11,7 +11,6 @@ export interface ResolvedMember {
   username?: string;
   displayName?: string;
   pfpUrl?: string;
-  baseDomain?: string;
   ethAddresses?: string[];
   solAddresses?: string[];
 }
@@ -32,62 +31,9 @@ interface NeynarBulkUsersResponse {
   users: NeynarUser[];
 }
 
-interface NeynarSearchResponse {
-  result: {
-    users: Array<{
-      fid: number;
-      username: string;
-      display_name: string;
-      pfp_url: string;
-    }>;
-  };
-}
 
 const NEYNAR_API_KEY = process.env.NEXT_PUBLIC_NEYNAR_API_KEY || "";
 const NEYNAR_BASE_URL = "https://api.neynar.com/v2/farcaster";
-
-/**
- * Search for a Farcaster user by username to get their FID
- */
-async function searchFarcasterUser(username: string): Promise<number | null> {
-  console.log(`[Neynar] searchFarcasterUser called with username: "${username}"`);
-  
-  if (!NEYNAR_API_KEY) {
-    console.warn("[Neynar] NEYNAR_API_KEY not configured");
-    return null;
-  }
-
-  try {
-    const url = `${NEYNAR_BASE_URL}/user/search`;
-    const params = { q: username, limit: 1 };
-    console.log(`[Neynar] Making API request to: ${url}`);
-    console.log(`[Neynar] Search params:`, params);
-    
-    const response = await ky
-      .get(url, {
-        searchParams: params,
-        headers: {
-          "x-api-key": NEYNAR_API_KEY,
-        },
-        timeout: 5000,
-      })
-      .json<NeynarSearchResponse>();
-
-    console.log(`[Neynar] Search response:`, response);
-
-    const user = response.result.users[0];
-    if (user && user.username.toLowerCase() === username.toLowerCase()) {
-      console.log(`[Neynar] Found user with FID: ${user.fid}, username: ${user.username}`);
-      return user.fid;
-    }
-
-    console.log(`[Neynar] No matching user found for username: ${username}`);
-    return null;
-  } catch (error) {
-    console.error(`[Neynar] Error searching for user ${username}:`, error);
-    return null;
-  }
-}
 
 /**
  * Fetch Farcaster user data by FID
@@ -142,21 +88,6 @@ async function fetchFarcasterUserByFid(
 }
 
 /**
- * Extract base domain from verified addresses
- * Looks for addresses ending in .base.eth
- */
-function extractBaseDomain(ethAddresses: string[]): string | undefined {
-  // In Neynar's API, verified_addresses contains actual addresses, not ENS names
-  // Base domains would need to be resolved separately or come from a different source
-  // For now, we'll return undefined and rely on the username
-  return undefined;
-}
-
-/**
- * Resolve an identifier using Neynar API
- * Supports: @username, username, username.base.eth, or direct addresses
- */
-/**
  * Search for a Farcaster user by Ethereum address
  */
 async function searchFarcasterUserByAddress(address: string): Promise<number | null> {
@@ -201,126 +132,68 @@ async function searchFarcasterUserByAddress(address: string): Promise<number | n
   }
 }
 
+/**
+ * Resolve an Ethereum address and enrich with Farcaster profile data
+ */
 export async function resolveIdentifier(
   identifier: string
 ): Promise<ResolvedMember> {
   console.log(`[Resolver] ========================================`);
   console.log(`[Resolver] resolveIdentifier called with: "${identifier}"`);
   
-  // Clean up identifier
-  const cleanIdentifier = identifier.trim().replace(/^@/, "");
+  const cleanIdentifier = identifier.trim();
   console.log(`[Resolver] Clean identifier: "${cleanIdentifier}"`);
 
-  // Check if it's already a full Ethereum address
+  // Validate it's an Ethereum address
   const isEthAddress = cleanIdentifier.match(/^0x[a-fA-F0-9]{40}$/);
-  if (isEthAddress) {
-    console.log(`[Resolver] Detected as Ethereum address, checking Farcaster for profile...`);
-    
-    // Try to find Farcaster profile for this address
-    try {
-      const fid = await searchFarcasterUserByAddress(cleanIdentifier);
-      
-      if (fid) {
-        console.log(`[Resolver] Found Farcaster profile for address, FID: ${fid}`);
-        const user = await fetchFarcasterUserByFid(fid);
-        
-        if (user) {
-          const baseDomain = extractBaseDomain(user.verified_addresses.eth_addresses);
-          console.log(`[Resolver] Successfully enriched address with Farcaster data`);
-
-          const resolvedMember: ResolvedMember = {
-            identifier,
-            address: cleanIdentifier, // Use the original address
-            fid: user.fid,
-            username: user.username,
-            displayName: user.display_name,
-            pfpUrl: user.pfp_url,
-            baseDomain,
-            ethAddresses: user.verified_addresses.eth_addresses,
-            solAddresses: user.verified_addresses.sol_addresses,
-            isResolving: false,
-          };
-          console.log(`[Resolver] Final resolved member with Farcaster data:`, resolvedMember);
-          return resolvedMember;
-        }
-      }
-      
-      console.log(`[Resolver] No Farcaster profile found for address, returning address only`);
-    } catch (error) {
-      console.error(`[Resolver] Error checking Farcaster for address:`, error);
-    }
-    
-    // Return the address even if Farcaster lookup failed
+  if (!isEthAddress) {
+    console.log(`[Resolver] Invalid Ethereum address format`);
     return {
       identifier,
-      address: cleanIdentifier,
+      address: null,
       isResolving: false,
+      error: "Invalid Ethereum address",
     };
   }
 
-  // Extract username from various formats
-  let username = cleanIdentifier;
-
-  // Handle domain formats (username.base.eth, username.eth, etc.)
-  if (cleanIdentifier.includes(".")) {
-    // Extract the username part (first segment)
-    username = cleanIdentifier.split(".")[0];
-    console.log(`[Resolver] Detected domain format, extracted username: "${username}"`);
-  }
-
-  // Try to resolve via Neynar
+  console.log(`[Resolver] Valid Ethereum address, checking Farcaster for profile...`);
+  
   try {
-    console.log(`[Resolver] Attempting to resolve via Neynar with username: "${username}"`);
-    const fid = await searchFarcasterUser(username);
-    console.log(`[Resolver] Search result - FID:`, fid);
+    const fid = await searchFarcasterUserByAddress(cleanIdentifier);
     
     if (fid) {
-      console.log(`[Resolver] FID found: ${fid}, fetching user details...`);
+      console.log(`[Resolver] Found Farcaster profile, FID: ${fid}`);
       const user = await fetchFarcasterUserByFid(fid);
-      console.log(`[Resolver] Fetch result - User:`, user);
       
       if (user) {
-        const baseDomain = extractBaseDomain(user.verified_addresses.eth_addresses);
-        const primaryAddress = user.verified_addresses.eth_addresses[0] || user.custody_address;
-        console.log(`[Resolver] Successfully resolved to primary address: ${primaryAddress}`);
-
+        console.log(`[Resolver] Successfully enriched address with Farcaster data`);
+        
         const resolvedMember: ResolvedMember = {
           identifier,
-          address: primaryAddress,
+          address: cleanIdentifier,
           fid: user.fid,
           username: user.username,
           displayName: user.display_name,
           pfpUrl: user.pfp_url,
-          baseDomain,
           ethAddresses: user.verified_addresses.eth_addresses,
           solAddresses: user.verified_addresses.sol_addresses,
           isResolving: false,
         };
         console.log(`[Resolver] Final resolved member:`, resolvedMember);
         return resolvedMember;
-      } else {
-        console.log(`[Resolver] FID found but failed to fetch user details`);
       }
-    } else {
-      console.log(`[Resolver] No FID found for username: ${username}`);
     }
     
-    console.log(`[Resolver] Resolution failed - user not found on Farcaster`);
-    return {
-      identifier,
-      address: null,
-      isResolving: false,
-      error: "User not found on Farcaster",
-    };
+    console.log(`[Resolver] No Farcaster profile found, returning address only`);
   } catch (error) {
-    console.error(`[Resolver] Error resolving ${identifier}:`, error);
-    console.log(`[Resolver] Error details:`, error);
-    return {
-      identifier,
-      address: null,
-      isResolving: false,
-      error: "Resolution failed",
-    };
+    console.error(`[Resolver] Error checking Farcaster:`, error);
   }
+  
+  // Return the address even if Farcaster lookup failed
+  return {
+    identifier,
+    address: cleanIdentifier,
+    isResolving: false,
+  };
 }
 

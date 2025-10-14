@@ -207,11 +207,10 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
                     </p>
                   )}
                   
-                  {/* Username or Base Domain */}
+                  {/* Username */}
                   {member.username && (
                     <p className="text-purple-400 text-sm mb-1">
                       @{member.username}
-                      {member.baseDomain && ` · ${member.baseDomain}`}
                     </p>
                   )}
                   
