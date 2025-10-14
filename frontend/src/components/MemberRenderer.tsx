@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { resolveIdentifier, type ResolvedMember } from "@/lib/resolver";
 
@@ -13,19 +13,48 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
   const [members, setMembers] = useState<ResolvedMember[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
-  const [resolvingTags, setResolvingTags] = useState<string>("");
+  const resolvedTagsRef = useRef<string>("");
 
-  const resolveTags = useCallback(async (tags: string[]) => {
-    if (tags.length === 0) return;
+  useEffect(() => {
+    // Parse tags from URL query parameter
+    const tagsParam = searchParams?.get("tags");
+    let tags: string[] = [];
     
+    if (tagsParam) {
+      try {
+        // Split by comma and clean up tags
+        tags = tagsParam
+          .split(",")
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0);
+
+        if (tags.length === 0) {
+          setError("No valid tags found in URL");
+          return;
+        }
+      } catch (err) {
+        setError("Failed to parse tags from URL");
+        console.error(err);
+        return;
+      }
+    } else if (defaultTags.length > 0) {
+      tags = defaultTags;
+    } else {
+      setError("No tags specified. Add ?tags=username,... to the URL");
+      return;
+    }
+
+    // Create a unique key for the current tags
     const tagsKey = tags.sort().join(",");
     
     // Prevent duplicate resolution attempts
-    if (isResolving && resolvingTags === tagsKey) {
+    if (resolvedTagsRef.current === tagsKey) {
       return;
     }
+    
+    // Mark these tags as being resolved
+    resolvedTagsRef.current = tagsKey;
     setIsResolving(true);
-    setResolvingTags(tagsKey);
     setError(null);
 
     // Initialize members with resolving state
@@ -37,69 +66,44 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
     setMembers(initialMembers);
 
     // Resolve each tag with timeout
-    const resolvedMembers = await Promise.all(
-      tags.map(async (tag) => {
-        try {
-          // Add timeout to prevent hanging requests
-          const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
-            setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
-          });
-          
-          const resolved = await Promise.race([
-            resolveIdentifier(tag),
-            timeoutPromise
-          ]);
-          
-          return {
-            ...resolved,
-            isResolving: false,
-          };
-        } catch (err) {
-          console.error(`Error resolving ${tag}:`, err);
-          return {
-            identifier: tag,
-            address: null,
-            isResolving: false,
-            error: err instanceof Error && err.message === 'Resolution timeout' 
-              ? "Resolution timeout" 
-              : "Resolution error",
-          };
-        }
-      })
-    );
+    const resolveTags = async () => {
+      const resolvedMembers = await Promise.all(
+        tags.map(async (tag) => {
+          try {
+            // Add timeout to prevent hanging requests
+            const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
+              setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
+            });
+            
+            const resolved = await Promise.race([
+              resolveIdentifier(tag),
+              timeoutPromise
+            ]);
+            
+            return {
+              ...resolved,
+              isResolving: false,
+            };
+          } catch (err) {
+            console.error(`Error resolving ${tag}:`, err);
+            return {
+              identifier: tag,
+              address: null,
+              isResolving: false,
+              error: err instanceof Error && err.message === 'Resolution timeout' 
+                ? "Resolution timeout" 
+                : "Resolution error",
+            };
+          }
+        })
+      );
 
-    setMembers(resolvedMembers);
-    setIsResolving(false);
-    setResolvingTags("");
-  }, [isResolving, resolvingTags]);
+      setMembers(resolvedMembers);
+      setIsResolving(false);
+    };
 
-  useEffect(() => {
-    // Parse tags from URL query parameter
-    const tagsParam = searchParams?.get("tags");
-    
-    if (tagsParam) {
-      try {
-        // Split by comma and clean up tags
-        const tags = tagsParam
-          .split(",")
-          .map(tag => tag.trim())
-          .filter(tag => tag.length > 0);
-
-        if (tags.length === 0) {
-          setError("No valid tags found in URL");
-        } else {
-          resolveTags(tags);
-        }
-      } catch (err) {
-        setError("Failed to parse tags from URL");
-        console.error(err);
-      }
-    } else if (defaultTags.length > 0) {
-      resolveTags(defaultTags);
-    } else {
-      setError("No tags specified. Add ?tags=username,... to the URL");
-    }
-  }, [searchParams, defaultTags, resolveTags]);
+    resolveTags();
+  }, [searchParams, defaultTags]);
 
   if (error) {
     return (
