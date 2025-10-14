@@ -34,20 +34,18 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
         tags.map(async (tag) => {
           try {
             // Add timeout to prevent hanging requests
-            const timeoutPromise = new Promise<string | null>((_, reject) => {
+            const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
               setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
             });
             
-            const address = await Promise.race([
+            const resolved = await Promise.race([
               resolveIdentifier(tag),
               timeoutPromise
             ]);
             
             return {
-              identifier: tag,
-              address,
+              ...resolved,
               isResolving: false,
-              error: address ? undefined : "Failed to resolve",
             };
           } catch (err) {
             console.error(`Error resolving ${tag}:`, err);
@@ -90,7 +88,7 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
     } else if (defaultTags.length > 0) {
       resolveTags(defaultTags);
     } else {
-      setError("No tags specified. Add ?tags=vitalik.eth,... to the URL");
+      setError("No tags specified. Add ?tags=username,... to the URL");
     }
   }, [searchParams, defaultTags]);
 
@@ -99,7 +97,7 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
       <div className="flex flex-col items-center justify-center p-8 bg-red-950/20 border border-red-500 rounded-lg">
         <p className="text-red-400 text-center">{error}</p>
         <p className="text-gray-400 text-sm mt-2 text-center">
-          Expected format: ?tags=vitalik.eth,fabrizioeth,...
+          Expected format: ?tags=fabrizioguespe,dwr.eth,0x1234...
         </p>
       </div>
     );
@@ -128,28 +126,74 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
             key={member.identifier}
             className="flex items-center gap-4 p-4 bg-gray-900 border border-gray-800 rounded-lg hover:border-gray-700 transition-colors"
           >
-            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-              {index + 1}
-            </div>
+            {/* Profile Picture or Number */}
+            {member.pfpUrl && !member.isResolving ? (
+              <img
+                src={member.pfpUrl}
+                alt={member.displayName || member.username || member.identifier}
+                className="flex-shrink-0 w-12 h-12 rounded-full object-cover border-2 border-purple-500"
+              />
+            ) : (
+              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                {index + 1}
+              </div>
+            )}
+            
             <div className="flex-1 min-w-0">
-              {/* Primary: Name/Identifier */}
-              <p className="text-white font-medium text-base mb-1">
-                {member.identifier}
-              </p>
-              
-              {/* Secondary: Resolved Address or Status */}
               {member.isResolving ? (
-                <p className="text-gray-500 text-sm">
-                  <span className="inline-block animate-pulse">Resolving...</span>
-                </p>
+                <>
+                  <p className="text-white font-medium text-base mb-1">
+                    {member.identifier}
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    <span className="inline-block animate-pulse">Resolving...</span>
+                  </p>
+                </>
               ) : member.address ? (
-                <p className="text-gray-400 font-mono text-xs truncate">
-                  {member.address}
-                </p>
+                <>
+                  {/* Display Name (Farcaster) */}
+                  {member.displayName && (
+                    <p className="text-white font-semibold text-base mb-0.5">
+                      {member.displayName}
+                    </p>
+                  )}
+                  
+                  {/* Username or Base Domain */}
+                  {member.username && (
+                    <p className="text-purple-400 text-sm mb-1">
+                      @{member.username}
+                      {member.baseDomain && ` · ${member.baseDomain}`}
+                    </p>
+                  )}
+                  
+                  {/* Original identifier if different */}
+                  {!member.username && member.identifier !== member.address && (
+                    <p className="text-gray-400 text-sm mb-1">
+                      {member.identifier}
+                    </p>
+                  )}
+                  
+                  {/* Primary Address */}
+                  <p className="text-gray-500 font-mono text-xs truncate">
+                    {member.address}
+                  </p>
+                  
+                  {/* Additional verified addresses */}
+                  {member.ethAddresses && member.ethAddresses.length > 1 && (
+                    <p className="text-gray-600 text-xs mt-1">
+                      +{member.ethAddresses.length - 1} more address{member.ethAddresses.length - 1 > 1 ? 'es' : ''}
+                    </p>
+                  )}
+                </>
               ) : (
-                <p className="text-red-400 text-xs">
-                  {member.error || "Failed to resolve"}
-                </p>
+                <>
+                  <p className="text-white font-medium text-base mb-1">
+                    {member.identifier}
+                  </p>
+                  <p className="text-red-400 text-xs">
+                    {member.error || "Failed to resolve"}
+                  </p>
+                </>
               )}
             </div>
             
@@ -159,7 +203,7 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
                 onClick={() => {
                   navigator.clipboard.writeText(member.address!);
                 }}
-                className="flex-shrink-0 px-3 py-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors"
+                className="flex-shrink-0 px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
                 title="Copy address"
               >
                 Copy
