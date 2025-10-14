@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx src/index.ts",
-    "dev": "tsx --watch src/index.ts"
+    "start": "tsx index.ts",
+    "dev": "tsx --watch index.ts"
   },
   "dependencies": {
     "@xmtp/agent-sdk": "^1.1.2"
