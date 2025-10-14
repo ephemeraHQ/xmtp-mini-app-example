@@ -1,9 +1,8 @@
 import { IdentifierKind } from "@xmtp/agent-sdk";
 import { createNameResolver } from "@xmtp/agent-sdk/user";
 import type { GroupMember } from "@xmtp/agent-sdk";
-import { loadEnvFile } from "node:process";
 
-loadEnvFile();
+process.loadEnvFile(".env");
 // Create resolver instance (uses web3.bio under the hood)
 const resolveAddress = createNameResolver(process.env.WEB3_BIO_API_KEY || "");
 

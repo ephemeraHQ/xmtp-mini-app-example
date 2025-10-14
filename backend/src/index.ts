@@ -4,9 +4,9 @@ import {
   resolveMentionsInMessage,
   extractMentions,
   extractMemberAddresses,
-} from "./resolver.js";
+} from "./resolver";
 
-process.env
+process.loadEnvFile(".env");
 
 const agent = await Agent.createFromEnv({
   env: process.env.XMTP_ENV as "local" | "dev" | "production",
@@ -50,3 +50,4 @@ agent.on("start", () => {
 });
 
 await agent.start();
+
