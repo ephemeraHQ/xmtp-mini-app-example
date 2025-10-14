@@ -42,7 +42,7 @@ export async function GET(
 
 const DefaultImage = () => (
   <img
-    src={`${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`}
+    src={`${env.NEXT_PUBLIC_URL}/frame-default-image.png`}
     alt="Default image for frames"
     width={"600px"}
     height={"400px"}

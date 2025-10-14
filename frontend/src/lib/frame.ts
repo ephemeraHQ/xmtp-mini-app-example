@@ -56,9 +56,9 @@ export async function getFarcasterManifest() {
     frame: {
       version: "1", // required, must be '1'
       name: "XMTP MiniApp", // required, max length 32 char
-      iconUrl: `${env.NEXT_PUBLIC_URL}/images/icon.png`, // required, https, png image 1024x1024 NO alpha, max length 1024 char
+      iconUrl: `${env.NEXT_PUBLIC_URL}/icon.png`, // required, https, png image 1024x1024 NO alpha, max length 1024 char
       homeUrl: env.NEXT_PUBLIC_URL, // required, https, max length 1024 char
-      splashImageUrl: `${env.NEXT_PUBLIC_URL}/images/splash.png`, // https, image 200x200px, max length 32 char
+      splashImageUrl: `${env.NEXT_PUBLIC_URL}/splash.png`, // https, image 200x200px, max length 32 char
       splashBackgroundColor: "#0d0d0d", // hex color in loading screen
       webhookUrl: `${env.NEXT_PUBLIC_URL}/api/webhook/farcaster`, // mandatory https POST endpoint, if the app uses notifications, max length 1024 char
       subtitle: "XMTP MiniApp", // max length 30 char, no emoji or special characters
@@ -94,14 +94,14 @@ export const getFrameMetadata = (_params: {
 
   return {
     version: "next",
-    imageUrl: `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`,
+    imageUrl: `${env.NEXT_PUBLIC_URL}/frame-default-image.png`,
     button: {
       title: buttonTitle,
       action: {
         type: "launch_frame",
         name: "XMTP MiniApp",
         url: `${env.NEXT_PUBLIC_URL}/${searchParamsString ? `?${searchParamsString}` : ""}`,
-        splashImageUrl: `${env.NEXT_PUBLIC_URL}/images/splash.png`,
+        splashImageUrl: `${env.NEXT_PUBLIC_URL}/splash.png`,
         splashBackgroundColor: "#0d0d0d",
       },
     },
