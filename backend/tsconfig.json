@@ -1,6 +1,6 @@
 {
-  "include": [ "index.ts"],
-  "compilerOptions": {
+  "include": [ "src/index.ts"],
+  "compilerOptions": {  
     "outDir": "./dist",
     "esModuleInterop": true,
     "declaration": true,
