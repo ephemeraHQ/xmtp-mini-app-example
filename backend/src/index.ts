@@ -12,25 +12,28 @@ const agent = await Agent.createFromEnv({
   env: process.env.XMTP_ENV as "local" | "dev" | "production",
 });
 
+const AGENT_MENTION = "@game";
 // Get frontend URL from environment or use default
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 agent.on("text", async (ctx) => {
   const content = ctx.message.content;
-  if(ctx.isGroup() && content.includes("@game")) {
+  if(ctx.isGroup() && content.includes(AGENT_MENTION)) {
       const mentions = extractMentions(content);
     if (mentions.length === 0) return;
-    console.log(mentions);
+    console.log("📝 Extracted mentions:", mentions);
 
     // Get group members for shortened address matching
     const memberAddresses =
         extractMemberAddresses(await ctx.conversation.members())
   
     // Resolve all mentions
+    console.log("🔍 Resolving mentions...");
     const resolved = await resolveMentionsInMessage(
-      content,
+      content.replace(AGENT_MENTION, ""),
       memberAddresses,
     );
+    console.log("✅ Resolved:", resolved);
 
     // Filter out unresolved addresses and collect successful ones
     const resolvedAddresses: string[] = [];
@@ -41,29 +44,20 @@ agent.on("text", async (ctx) => {
         failedIdentifiers.push(identifier);
       } else {
         resolvedAddresses.push(address);
-        console.log(identifier, address);
       }
     }
 
-    // Build response with mini app link if we have resolved addresses
-    let response = "🔍 Mini App:\n\n";
+    console.log("✅ Resolved addresses:", resolvedAddresses);
+    console.log("❌ Failed identifiers:", failedIdentifiers);
+
+    const membersString= `?users=${resolvedAddresses.join(",")}`
+
+    console.log("📤 Sending mini app link:", `${FRONTEND_URL}${membersString}`);
+    await ctx.sendText(`🚀 View in Mini App:`)
+    await ctx.sendText(`${FRONTEND_URL}${membersString}`);
+    console.log("✅ Messages sent!");
     
-    if (resolvedAddresses.length > 0) {
-      // Construct mini app URL with resolved addresses
-      const miniAppUrl = `${FRONTEND_URL}?users=${resolvedAddresses.join(",")}`;
-      
-      response += `✅ Found ${resolvedAddresses.length} address${resolvedAddresses.length > 1 ? "es" : ""}!\n\n`;
-      response += `🚀 View in Mini App:\n${miniAppUrl}\n\n`;
-      
-      // Show the resolved addresses
-      for (const [identifier, address] of Object.entries(resolved)) {
-        if (address) {
-          response += `✅ ${identifier} → ${address.substring(0, 6)}...${address.substring(38)}\n`;
-        }
-      }
-    }
     
-    await ctx.sendText(response);
   }else if(ctx.isDm() && content.includes("/start")) {
     await ctx.sendText("🔍 Start:\n\n");
     await ctx.sendText(`${FRONTEND_URL}`);
