@@ -16,17 +16,26 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
   const resolvedTagsRef = useRef<string>("");
 
   useEffect(() => {
+    console.log("[MemberRenderer] useEffect triggered");
+    console.log("[MemberRenderer] searchParams:", searchParams?.toString());
+    console.log("[MemberRenderer] defaultTags:", defaultTags);
+    console.log("[MemberRenderer] Current members state:", members);
+    console.log("[MemberRenderer] resolvedTagsRef.current:", resolvedTagsRef.current);
+    
     // Parse tags from URL query parameter
     const tagsParam = searchParams?.get("tags");
     let tags: string[] = [];
     
     if (tagsParam) {
+      console.log("[MemberRenderer] Found tagsParam:", tagsParam);
       try {
         // Split by comma and clean up tags
         tags = tagsParam
           .split(",")
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0);
+
+        console.log("[MemberRenderer] Parsed tags:", tags);
 
         if (tags.length === 0) {
           setError("No valid tags found in URL");
@@ -38,17 +47,24 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
         return;
       }
     } else if (defaultTags.length > 0) {
+      console.log("[MemberRenderer] Using defaultTags");
       tags = defaultTags;
     } else {
+      console.log("[MemberRenderer] No tags specified");
       setError("No tags specified. Add ?tags=username,... to the URL");
       return;
     }
 
     // Create a unique key for the current tags
     const tagsKey = tags.sort().join(",");
+    console.log("[MemberRenderer] Tags key:", tagsKey);
+    console.log("[MemberRenderer] Comparing with resolvedTagsRef.current:", resolvedTagsRef.current);
+    console.log("[MemberRenderer] Are they equal?", resolvedTagsRef.current === tagsKey);
     
     // Prevent duplicate resolution attempts
     if (resolvedTagsRef.current === tagsKey) {
+      console.log("[MemberRenderer] Tags already resolved, skipping");
+      console.log("[MemberRenderer] Current members in state:", members);
       return;
     }
     
@@ -56,6 +72,7 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
     resolvedTagsRef.current = tagsKey;
     setIsResolving(true);
     setError(null);
+    console.log("[MemberRenderer] Starting resolution for tags:", tags);
 
     // Initialize members with resolving state
     const initialMembers: ResolvedMember[] = tags.map((tag) => ({
@@ -64,28 +81,33 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
       isResolving: true,
     }));
     setMembers(initialMembers);
+    console.log("[MemberRenderer] Initialized members:", initialMembers);
 
     // Resolve each tag with timeout
     const resolveTags = async () => {
+      console.log("[MemberRenderer] resolveTags() function starting");
       const resolvedMembers = await Promise.all(
         tags.map(async (tag) => {
+          console.log(`[MemberRenderer] Resolving tag: ${tag}`);
           try {
             // Add timeout to prevent hanging requests
             const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
               setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
             });
             
+            console.log(`[MemberRenderer] Calling resolveIdentifier for: ${tag}`);
             const resolved = await Promise.race([
               resolveIdentifier(tag),
               timeoutPromise
             ]);
             
+            console.log(`[MemberRenderer] Resolved ${tag}:`, resolved);
             return {
               ...resolved,
               isResolving: false,
             };
           } catch (err) {
-            console.error(`Error resolving ${tag}:`, err);
+            console.error(`[MemberRenderer] Error resolving ${tag}:`, err);
             return {
               identifier: tag,
               address: null,
@@ -98,10 +120,12 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
         })
       );
 
+      console.log("[MemberRenderer] All tags resolved:", resolvedMembers);
       setMembers(resolvedMembers);
       setIsResolving(false);
     };
 
+    console.log("[MemberRenderer] About to call resolveTags()");
     resolveTags();
   }, [searchParams, defaultTags]);
 

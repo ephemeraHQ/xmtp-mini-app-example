@@ -50,18 +50,22 @@ const NEYNAR_BASE_URL = "https://api.neynar.com/v2/farcaster";
  * Search for a Farcaster user by username to get their FID
  */
 async function searchFarcasterUser(username: string): Promise<number | null> {
+  console.log(`[Neynar] searchFarcasterUser called with username: "${username}"`);
+  
   if (!NEYNAR_API_KEY) {
-    console.warn("NEYNAR_API_KEY not configured");
+    console.warn("[Neynar] NEYNAR_API_KEY not configured");
     return null;
   }
 
   try {
+    const url = `${NEYNAR_BASE_URL}/user/search`;
+    const params = { q: username, limit: 1 };
+    console.log(`[Neynar] Making API request to: ${url}`);
+    console.log(`[Neynar] Search params:`, params);
+    
     const response = await ky
-      .get(`${NEYNAR_BASE_URL}/user/search`, {
-        searchParams: {
-          q: username,
-          limit: 1,
-        },
+      .get(url, {
+        searchParams: params,
         headers: {
           "x-api-key": NEYNAR_API_KEY,
         },
@@ -69,14 +73,18 @@ async function searchFarcasterUser(username: string): Promise<number | null> {
       })
       .json<NeynarSearchResponse>();
 
+    console.log(`[Neynar] Search response:`, response);
+
     const user = response.result.users[0];
     if (user && user.username.toLowerCase() === username.toLowerCase()) {
+      console.log(`[Neynar] Found user with FID: ${user.fid}, username: ${user.username}`);
       return user.fid;
     }
 
+    console.log(`[Neynar] No matching user found for username: ${username}`);
     return null;
   } catch (error) {
-    console.error(`Error searching for user ${username}:`, error);
+    console.error(`[Neynar] Error searching for user ${username}:`, error);
     return null;
   }
 }
@@ -87,16 +95,22 @@ async function searchFarcasterUser(username: string): Promise<number | null> {
 async function fetchFarcasterUserByFid(
   fid: number
 ): Promise<NeynarUser | null> {
+  console.log(`[Neynar] fetchFarcasterUserByFid called with FID: ${fid}`);
+  
   if (!NEYNAR_API_KEY) {
+    console.warn("[Neynar] NEYNAR_API_KEY not configured");
     return null;
   }
 
   try {
+    const url = `${NEYNAR_BASE_URL}/user/bulk`;
+    const params = { fids: fid.toString() };
+    console.log(`[Neynar] Making API request to: ${url}`);
+    console.log(`[Neynar] Request params:`, params);
+    
     const response = await ky
-      .get(`${NEYNAR_BASE_URL}/user/bulk`, {
-        searchParams: {
-          fids: fid.toString(),
-        },
+      .get(url, {
+        searchParams: params,
         headers: {
           "x-api-key": NEYNAR_API_KEY,
         },
@@ -104,9 +118,25 @@ async function fetchFarcasterUserByFid(
       })
       .json<NeynarBulkUsersResponse>();
 
-    return response.users[0] || null;
+    console.log(`[Neynar] Bulk user response:`, response);
+    
+    const user = response.users[0] || null;
+    if (user) {
+      console.log(`[Neynar] Retrieved user data:`, {
+        fid: user.fid,
+        username: user.username,
+        display_name: user.display_name,
+        custody_address: user.custody_address,
+        verified_eth_addresses: user.verified_addresses.eth_addresses,
+        verified_sol_addresses: user.verified_addresses.sol_addresses,
+      });
+    } else {
+      console.log(`[Neynar] No user found for FID: ${fid}`);
+    }
+    
+    return user;
   } catch (error) {
-    console.error(`Error fetching user with FID ${fid}:`, error);
+    console.error(`[Neynar] Error fetching user with FID ${fid}:`, error);
     return null;
   }
 }
@@ -129,11 +159,16 @@ function extractBaseDomain(ethAddresses: string[]): string | undefined {
 export async function resolveIdentifier(
   identifier: string
 ): Promise<ResolvedMember> {
+  console.log(`[Resolver] ========================================`);
+  console.log(`[Resolver] resolveIdentifier called with: "${identifier}"`);
+  
   // Clean up identifier
   const cleanIdentifier = identifier.trim().replace(/^@/, "");
+  console.log(`[Resolver] Clean identifier: "${cleanIdentifier}"`);
 
   // Check if it's already a full Ethereum address
   if (cleanIdentifier.match(/^0x[a-fA-F0-9]{40}$/)) {
+    console.log(`[Resolver] Detected as Ethereum address, returning as-is`);
     return {
       identifier,
       address: cleanIdentifier,
@@ -148,20 +183,26 @@ export async function resolveIdentifier(
   if (cleanIdentifier.includes(".")) {
     // Extract the username part (first segment)
     username = cleanIdentifier.split(".")[0];
+    console.log(`[Resolver] Detected domain format, extracted username: "${username}"`);
   }
 
   // Try to resolve via Neynar
   try {
+    console.log(`[Resolver] Attempting to resolve via Neynar with username: "${username}"`);
     const fid = await searchFarcasterUser(username);
-
+    console.log(`[Resolver] Search result - FID:`, fid);
+    
     if (fid) {
+      console.log(`[Resolver] FID found: ${fid}, fetching user details...`);
       const user = await fetchFarcasterUserByFid(fid);
-
+      console.log(`[Resolver] Fetch result - User:`, user);
+      
       if (user) {
         const baseDomain = extractBaseDomain(user.verified_addresses.eth_addresses);
         const primaryAddress = user.verified_addresses.eth_addresses[0] || user.custody_address;
+        console.log(`[Resolver] Successfully resolved to primary address: ${primaryAddress}`);
 
-        return {
+        const resolvedMember: ResolvedMember = {
           identifier,
           address: primaryAddress,
           fid: user.fid,
@@ -173,10 +214,16 @@ export async function resolveIdentifier(
           solAddresses: user.verified_addresses.sol_addresses,
           isResolving: false,
         };
+        console.log(`[Resolver] Final resolved member:`, resolvedMember);
+        return resolvedMember;
+      } else {
+        console.log(`[Resolver] FID found but failed to fetch user details`);
       }
+    } else {
+      console.log(`[Resolver] No FID found for username: ${username}`);
     }
-
-    // If Neynar resolution failed, return null
+    
+    console.log(`[Resolver] Resolution failed - user not found on Farcaster`);
     return {
       identifier,
       address: null,
@@ -184,7 +231,8 @@ export async function resolveIdentifier(
       error: "User not found on Farcaster",
     };
   } catch (error) {
-    console.error(`Error resolving ${identifier}:`, error);
+    console.error(`[Resolver] Error resolving ${identifier}:`, error);
+    console.log(`[Resolver] Error details:`, error);
     return {
       identifier,
       address: null,
