@@ -29,11 +29,20 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
       }));
       setMembers(initialMembers);
 
-      // Resolve each tag
+      // Resolve each tag with timeout
       const resolvedMembers = await Promise.all(
         tags.map(async (tag) => {
           try {
-            const address = await resolveIdentifier(tag);
+            // Add timeout to prevent hanging requests
+            const timeoutPromise = new Promise<string | null>((_, reject) => {
+              setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
+            });
+            
+            const address = await Promise.race([
+              resolveIdentifier(tag),
+              timeoutPromise
+            ]);
+            
             return {
               identifier: tag,
               address,
@@ -46,7 +55,9 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
               identifier: tag,
               address: null,
               isResolving: false,
-              error: "Resolution error",
+              error: err instanceof Error && err.message === 'Resolution timeout' 
+                ? "Resolution timeout" 
+                : "Resolution error",
             };
           }
         })
