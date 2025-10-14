@@ -4,11 +4,11 @@ import { z } from "zod";
 // https://env.t3.gg/docs/nextjs
 export const env = createEnv({
   server: {
-    NEYNAR_API_KEY: z.string().default("NEYNAR_API_DOCS"),
     // Ngrok configuration (required for yarn dev:ngrok)
     NGROK_AUTHTOKEN: z.string().optional(),
     // Optional: Custom ngrok domain (requires paid plan)
     NGROK_DOMAIN: z.string().optional(),
+    NEYNAR_API_KEY: z.string().default("NEYNAR_API_KEY"),
   },
   client: {
     NEXT_PUBLIC_URL: z.string().url().min(1),

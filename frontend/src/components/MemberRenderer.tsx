@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { resolveIdentifier, type ResolvedMember } from "@/lib/resolver";
 
@@ -13,60 +13,75 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
   const [members, setMembers] = useState<ResolvedMember[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+  const [resolvingTags, setResolvingTags] = useState<string>("");
+
+  const resolveTags = useCallback(async (tags: string[]) => {
+    if (tags.length === 0) return;
+    
+    const tagsKey = tags.sort().join(",");
+    
+    // Prevent duplicate resolution attempts
+    if (isResolving && resolvingTags === tagsKey) {
+      console.log("Preventing duplicate resolution for:", tagsKey);
+      return;
+    }
+
+    console.log("Starting resolution for tags:", tags);
+    setIsResolving(true);
+    setResolvingTags(tagsKey);
+    setError(null);
+
+    // Initialize members with resolving state
+    const initialMembers: ResolvedMember[] = tags.map((tag) => ({
+      identifier: tag,
+      address: null,
+      isResolving: true,
+    }));
+    setMembers(initialMembers);
+
+    // Resolve each tag with timeout
+    const resolvedMembers = await Promise.all(
+      tags.map(async (tag) => {
+        try {
+          // Add timeout to prevent hanging requests
+          const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
+            setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
+          });
+          
+          const resolved = await Promise.race([
+            resolveIdentifier(tag),
+            timeoutPromise
+          ]);
+          
+          return {
+            ...resolved,
+            isResolving: false,
+          };
+        } catch (err) {
+          console.error(`Error resolving ${tag}:`, err);
+          return {
+            identifier: tag,
+            address: null,
+            isResolving: false,
+            error: err instanceof Error && err.message === 'Resolution timeout' 
+              ? "Resolution timeout" 
+              : "Resolution error",
+          };
+        }
+      })
+    );
+
+    console.log("Resolution completed for tags:", tags);
+    setMembers(resolvedMembers);
+    setIsResolving(false);
+    setResolvingTags("");
+  }, [isResolving, resolvingTags]);
 
   useEffect(() => {
-    const resolveTags = async (tags: string[]) => {
-      if (tags.length === 0) return;
-
-      setIsResolving(true);
-      setError(null);
-
-      // Initialize members with resolving state
-      const initialMembers: ResolvedMember[] = tags.map((tag) => ({
-        identifier: tag,
-        address: null,
-        isResolving: true,
-      }));
-      setMembers(initialMembers);
-
-      // Resolve each tag with timeout
-      const resolvedMembers = await Promise.all(
-        tags.map(async (tag) => {
-          try {
-            // Add timeout to prevent hanging requests
-            const timeoutPromise = new Promise<ResolvedMember>((_, reject) => {
-              setTimeout(() => reject(new Error('Resolution timeout')), 10000); // 10 second timeout
-            });
-            
-            const resolved = await Promise.race([
-              resolveIdentifier(tag),
-              timeoutPromise
-            ]);
-            
-            return {
-              ...resolved,
-              isResolving: false,
-            };
-          } catch (err) {
-            console.error(`Error resolving ${tag}:`, err);
-            return {
-              identifier: tag,
-              address: null,
-              isResolving: false,
-              error: err instanceof Error && err.message === 'Resolution timeout' 
-                ? "Resolution timeout" 
-                : "Resolution error",
-            };
-          }
-        })
-      );
-
-      setMembers(resolvedMembers);
-      setIsResolving(false);
-    };
-
+    console.log("MemberRenderer useEffect triggered");
     // Parse tags from URL query parameter
     const tagsParam = searchParams?.get("tags");
+    console.log("Tags param:", tagsParam);
     
     if (tagsParam) {
       try {
@@ -75,6 +90,8 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
           .split(",")
           .map(tag => tag.trim())
           .filter(tag => tag.length > 0);
+
+        console.log("Parsed tags:", tags);
 
         if (tags.length === 0) {
           setError("No valid tags found in URL");
@@ -86,11 +103,13 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
         console.error(err);
       }
     } else if (defaultTags.length > 0) {
+      console.log("Using default tags:", defaultTags);
       resolveTags(defaultTags);
     } else {
+      console.log("No tags specified");
       setError("No tags specified. Add ?tags=username,... to the URL");
     }
-  }, [searchParams, defaultTags]);
+  }, [searchParams, defaultTags, resolveTags]);
 
   if (error) {
     return (
