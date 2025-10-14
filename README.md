@@ -18,8 +18,7 @@ hey @game, lets challenge @vitalik.eth @humanagent.eth and @0x...
 2. The agent will respond with a mini app link to the frontend.
 
 ```bash
-🚀 View in Mini App:
-http://localhost:3000?tags=vitalik.eth,humanagent.eth,0x...
+http://mini-app-example.ngrok.io?tags=vitalik.eth,humanagent.eth,0x...
 ```
 
 3. The frontend will resolve the mentions and display the user profiles.
@@ -30,6 +29,7 @@ http://localhost:3000?tags=vitalik.eth,humanagent.eth,0x...
 ✅ 0x... → 0x...
 ```
 
+## Get started 
 
 ### Requirements
 
@@ -37,15 +37,6 @@ http://localhost:3000?tags=vitalik.eth,humanagent.eth,0x...
 - Yarn v4 or higher
 - Docker (optional, for local network)
 
-### Environment variables
-
-To run your XMTP agent, you must create a `.env` file with the following variables:
-
-```bash
-XMTP_WALLET_KEY= # the private key of the wallet
-XMTP_DB_ENCRYPTION_KEY= # encryption key for the local database
-XMTP_ENV=dev # local, dev, production
-```
 
 ### Run the agent
 
@@ -61,6 +52,17 @@ yarn
 yarn start
 ```
 
+#### Environment variables for the agent
+
+To run your XMTP agent, you must create a `.env` file with the following variables:
+
+```bash
+XMTP_WALLET_KEY= # the private key of the wallet
+XMTP_DB_ENCRYPTION_KEY= # encryption key for the local database
+XMTP_ENV=dev # local, dev, production
+```
+
+
 
 ### Run the frontend
 
@@ -75,3 +77,26 @@ yarn
 # run the frontend
 yarn dev
 ```
+
+#### Environment variables for the frontend
+
+To run your frontend, you must create a `.env.local` file with the following variables:
+
+```bash
+# Farcaster.json manifest generate yours at https://warpcast.com/~/developers/mini-apps/manifest
+NEXT_PUBLIC_URL="http://localhost:3000"
+NEXT_PUBLIC_FARCASTER_HEADER=""
+NEXT_PUBLIC_FARCASTER_PAYLOAD=""
+NEXT_PUBLIC_FARCASTER_SIGNATURE=""
+
+NEXT_PUBLIC_APP_ENV="" 
+
+
+NGROK_DOMAIN=""
+NGROK_AUTHTOKEN=""
+
+# Neynar API Key for username resolution
+NEXT_PUBLIC_NEYNAR_API_KEY=
+```
+
+This example uses the Neynar API to resolve [Farcaster usernames to Ethereum addresses](https://docs.neynar.com/reference/fetch-bulk-users).
