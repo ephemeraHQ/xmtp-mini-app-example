@@ -24,7 +24,7 @@ export async function generateMetadata({
 
   const ogTitle = "Group Member Renderer";
   const ogDescription = "View group member addresses via URL parameters";
-  const ogImageUrl = `${env.NEXT_PUBLIC_URL}/images/frame-default-image.png`;
+  const ogImageUrl = `${env.NEXT_PUBLIC_URL}/frame-default-image.png`;
 
   return {
     title: ogTitle,
