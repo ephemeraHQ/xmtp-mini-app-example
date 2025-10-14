@@ -8,7 +8,6 @@ export const env = createEnv({
     NGROK_AUTHTOKEN: z.string().optional(),
     // Optional: Custom ngrok domain (requires paid plan)
     NGROK_DOMAIN: z.string().optional(),
-    NEYNAR_API_KEY: z.string().default("NEYNAR_API_KEY"),
   },
   client: {
     NEXT_PUBLIC_URL: z.string().url().min(1),
@@ -20,6 +19,8 @@ export const env = createEnv({
     NEXT_PUBLIC_FARCASTER_HEADER: z.string().min(1),
     NEXT_PUBLIC_FARCASTER_PAYLOAD: z.string().min(1),
     NEXT_PUBLIC_FARCASTER_SIGNATURE: z.string().min(1),
+    // Neynar API Key for username resolution
+    NEXT_PUBLIC_NEYNAR_API_KEY: z.string().default("NEYNAR_API_DOCS"),
   },
   // For Next.js >= 13.4.4, you only need to destructure client variables:
   experimental__runtimeEnv: {
@@ -29,5 +30,6 @@ export const env = createEnv({
     NEXT_PUBLIC_FARCASTER_PAYLOAD: process.env.NEXT_PUBLIC_FARCASTER_PAYLOAD,
     NEXT_PUBLIC_FARCASTER_SIGNATURE:
       process.env.NEXT_PUBLIC_FARCASTER_SIGNATURE,
+    NEXT_PUBLIC_NEYNAR_API_KEY: process.env.NEXT_PUBLIC_NEYNAR_API_KEY,
   },
 });

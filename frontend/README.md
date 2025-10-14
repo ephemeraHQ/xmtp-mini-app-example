@@ -17,7 +17,7 @@ yarn install
 
 **Environment Variables** (`.env.local`):
 ```env
-NEYNAR_API_KEY=your_api_key
+NEXT_PUBLIC_NEYNAR_API_KEY=your_api_key
 ```
 
 Get your API key at [neynar.com](https://neynar.com)
@@ -29,4 +29,4 @@ yarn dev
 
 ## Deployment
 
-Deploy to Vercel and add `NEYNAR_API_KEY` to environment variables.
+Deploy to Vercel and add `NEXT_PUBLIC_NEYNAR_API_KEY` to environment variables.
