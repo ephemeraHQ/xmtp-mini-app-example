@@ -13,7 +13,7 @@ const resolveAddress = createNameResolver(process.env.WEB3_BIO_API_KEY || "");
  * @param fullAddresses - Array of full Ethereum addresses to match against
  * @returns Matched full address or null if no match found
  */
-export const matchShortenedAddress = (
+ const matchShortenedAddress = (
   shortenedAddress: string,
   fullAddresses: string[],
 ): string | null => {
@@ -44,7 +44,7 @@ export const matchShortenedAddress = (
  * @param members - Array of group members
  * @returns Array of Ethereum addresses
  */
-export const extractMemberAddresses = (members: GroupMember[]): string[] => {
+ const extractMemberAddresses = (members: GroupMember[]): string[] => {
   const addresses: string[] = [];
 
   for (const member of members) {
@@ -67,7 +67,7 @@ export const extractMemberAddresses = (members: GroupMember[]): string[] => {
  * @param memberAddresses - Optional array of member addresses to match shortened addresses against
  * @returns Ethereum address or null if not found
  */
-export const resolveIdentifier = async (
+ const resolveIdentifier = async (
   identifier: string,
   memberAddresses?: string[],
 ): Promise<string | null> => {
@@ -90,7 +90,13 @@ export const resolveIdentifier = async (
   }
   console.log(identifier);
   // Otherwise, resolve using agent-sdk
-  return resolveAddress(identifier);
+  const address= await resolveAddress(identifier);
+
+  //verify is eth address
+  if(!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    return null;
+  }
+  return address;
 };
 
 /**
@@ -110,7 +116,7 @@ const cleanupIdentifier = (identifier: string): string => {
  * @param message - The message text to parse
  * @returns Array of extracted identifiers
  */
-export const extractMentions = (message: string): string[] => {
+ const extractMentions = (message: string): string[] => {
   const mentions: string[] = [];
 
   // Match full Ethereum addresses @0x followed by 40 hex chars (check this FIRST)
