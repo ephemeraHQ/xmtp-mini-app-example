@@ -105,9 +105,7 @@ export default function MemberRenderer({ defaultTags = [] }: MemberRendererProps
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xl font-bold text-white">
-          Tagged Members
-        </h2>
+       
         <span className="text-sm text-gray-400">
           {members.length} {members.length === 1 ? "member" : "members"}
         </span>

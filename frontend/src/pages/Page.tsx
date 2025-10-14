@@ -32,9 +32,9 @@ export default function Page() {
 
         <div className="flex flex-col gap-4 px-4 py-4 h-full overflow-auto">
           <div className="mb-4">
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Tagged Members
-            </h1>
+            <h3 className="text-xl font-bold text-white mb-2">
+              Tagged members
+            </h3>
             <p className="text-gray-400 text-sm">
               Resolving member identities from tags (ENS, Farcaster, addresses)
             </p>
