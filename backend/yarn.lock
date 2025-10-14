@@ -253,7 +253,7 @@
   dependencies:
     undici-types "~7.14.0"
 
-"@xmtp/agent-sdk@^1.1.2":
+"@xmtp/agent-sdk@^1.1.7":
   version "1.1.7"
   resolved "https://registry.yarnpkg.com/@xmtp/agent-sdk/-/agent-sdk-1.1.7.tgz#f1111ff525e5573dc91758ae92e1c5183a3bd0fd"
   integrity sha512-RddduUoHmIYLKZfVrgCXF/UW3aVaYG0j7+JhELX6Xece4QPdwIG0ttN031fab/PADPJfL5hfxBRkthiOlpZNrQ==

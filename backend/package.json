@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx index.ts",
+    "start": "tsx source ~/.bashrc;pr_pushindex.ts",
     "dev": "tsx --watch index.ts"
   },
   "dependencies": {
-    "@xmtp/agent-sdk": "^1.1.2"
+    "@xmtp/agent-sdk": "^1.1.7"
   },
   "devDependencies": {
     "tsx": "^4.19.3",
