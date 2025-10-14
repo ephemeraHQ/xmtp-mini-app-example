@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "tsx source ~/.bashrc;pr_pushindex.ts",
+    "start": "tsx index.ts",
     "dev": "tsx --watch index.ts"
   },
   "dependencies": {

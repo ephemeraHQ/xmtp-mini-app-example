@@ -1,0 +1,27 @@
+{
+  "name": "xmtp-mini-app-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "yarn workspace frontend dev",
+    "dev:backend": "yarn workspace backend dev",
+    "dev": "concurrently \"yarn dev:frontend\" \"yarn dev:backend\"",
+    "build:frontend": "yarn workspace frontend build",
+    "build:backend": "yarn workspace backend build",
+    "build": "yarn build:frontend && yarn build:backend",
+    "start:frontend": "yarn workspace frontend start",
+    "start:backend": "yarn workspace backend start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "yarn@4.9.1",
+  "engines": {
+    "node": ">=20"
+  }
+}
+

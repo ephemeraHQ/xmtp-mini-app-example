@@ -2,6 +2,8 @@
 
 This backend agent listens for XMTP messages containing mentions and extracts them as tags, then opens a mini app where the frontend resolves the tags to Ethereum addresses.
 
+> **Note:** This is part of a monorepo. See the [root README](../README.md) for deployment instructions.
+
 ## Features
 
 - 🔍 Extracts mentions from messages (`@username.eth`, `@username`, `0x...` addresses)
@@ -18,7 +20,14 @@ This backend agent listens for XMTP messages containing mentions and extracts th
 
 ### Installation
 
+From the project root:
 ```bash
+yarn install
+```
+
+Or from this directory:
+```bash
+cd backend
 yarn install
 ```
 
@@ -47,15 +56,38 @@ FRONTEND_URL=http://localhost:3000
 
 ### Development Mode (with auto-reload)
 
+From the project root:
+```bash
+yarn dev:backend
+```
+
+Or from this directory:
 ```bash
 yarn dev
 ```
 
 ### Production Mode
 
+From the project root:
+```bash
+yarn start:backend
+```
+
+Or from this directory:
 ```bash
 yarn start
 ```
+
+## Deployment to Railway
+
+This service is configured to deploy to Railway as part of the monorepo. See the [root README](../README.md) for complete deployment instructions.
+
+**Environment variables required on Railway:**
+- `XMTP_ENV` - XMTP environment (production/dev/local)
+- `KEY` - Your XMTP agent private key
+- `FRONTEND_URL` - URL of your Railway frontend service
+
+The backend will automatically restart on failure with Railway's restart policy configured in `railway.toml`.
 
 ## How It Works
 

@@ -1,6 +1,8 @@
-# Tagged Member Resolver
+# XMTP Mini App Frontend
 
 A Next.js application that resolves and displays member identities from tags (ENS names, Farcaster usernames, or Ethereum addresses).
+
+> **Note:** This is part of a monorepo. See the [root README](../README.md) for complete deployment instructions.
 
 ## Features
 
@@ -35,7 +37,14 @@ https://mini-app.vercel.com?tags=vitalik.eth,fabrizioeth.farcaster.eth,0xfb55CB6
 
 ### Installation
 
+From the project root:
 ```bash
+yarn install
+```
+
+Or from this directory:
+```bash
+cd frontend
 yarn install
 ```
 
@@ -59,6 +68,12 @@ NGROK_DOMAIN=your-custom-domain.ngrok.app
 
 ### Run Development Server
 
+From the project root:
+```bash
+yarn dev:frontend
+```
+
+Or from this directory:
 ```bash
 yarn dev
 ```
@@ -77,22 +92,19 @@ Get your ngrok authtoken at: https://dashboard.ngrok.com/get-started/your-authto
 
 ## Deployment
 
-### Deploy to Vercel
+### Deploy to Railway
 
-1. Push your code to GitHub
-2. Import your repository in Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy
+This service is configured to deploy to Railway as part of the monorepo. See the [root README](../README.md) for complete deployment instructions.
 
-### Environment Variables for Production
-
-Set these in your Vercel dashboard:
-
-- `NEXT_PUBLIC_URL` - Your production URL
-- `NEXT_PUBLIC_APP_ENV=production`
+**Environment variables required on Railway:**
+- `NEXT_PUBLIC_URL` - Your production URL (provided by Railway)
+- `NEXT_PUBLIC_APP_ENV` - Set to `production`
 - `NEXT_PUBLIC_FARCASTER_HEADER` - Farcaster manifest header
 - `NEXT_PUBLIC_FARCASTER_PAYLOAD` - Farcaster manifest payload
 - `NEXT_PUBLIC_FARCASTER_SIGNATURE` - Farcaster manifest signature
+- `NEYNAR_API_KEY` - Neynar API key for Farcaster integration
+
+Railway will automatically detect Next.js and configure the build process.
 
 ## Build for Production
 

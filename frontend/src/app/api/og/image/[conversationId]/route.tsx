@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { ImageResponse } from "@vercel/og";
+import { ImageResponse } from "next/og";
 import { OG_IMAGE_SIZE } from "@/lib/constants";
 import { env } from "@/lib/env";
 
